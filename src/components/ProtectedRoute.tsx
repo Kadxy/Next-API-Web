@@ -1,27 +1,17 @@
-import React, { ReactNode } from 'react';
-import { Navigate, useLocation, Outlet } from 'react-router-dom';
-import { useAuth } from '../lib/context/hooks';
+import { FC, ReactNode } from 'react';
+import { useLocation, Outlet, Navigate } from 'react-router-dom';
 import { Path } from '../lib/constants/paths';
-import { Spin } from '@douyinfe/semi-ui';
+import { STORE_KEYS } from '../lib/constants/store';
 
 interface ProtectedRouteProps {
     children?: ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
     const location = useLocation();
+    const token = localStorage.getItem(STORE_KEYS.TOKEN);
 
-    if (isLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" tip="加载中..." />
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        // 未登录时重定向到登录页，并保存当前位置
+    if (!token) {
         return <Navigate to={Path.LOGIN} state={{ from: location }} replace />;
     }
 

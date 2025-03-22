@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import AuthContext, { ContextUser } from './AuthContext';
 import { STORE_KEYS } from '../constants/store';
-import { getServerApi } from '../../api/utils';
+import { getServerApi, parseResponse } from '../../api/utils';
 import { ProviderProps } from './hooks';
 
 const AuthProvider: FC<ProviderProps> = ({ children }) => {
@@ -9,47 +9,39 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 初始化时从localStorage恢复用户会话
+    // 初始化时从localStorage恢复用户会话并验证token有效性
     useEffect(() => {
-        const storedToken = localStorage.getItem(STORE_KEYS.TOKEN);
-        if (storedToken) {
-            setToken(storedToken);
+        const initAuth = async () => {
+            const storedToken = localStorage.getItem(STORE_KEYS.TOKEN);
 
-            const storedUser = localStorage.getItem(STORE_KEYS.USER);
-            if (storedUser) {
-                try {
-                    setUser(JSON.parse(storedUser));
-                } catch (e) {
-                    console.error('Failed to parse stored user data', e);
-                    localStorage.removeItem(STORE_KEYS.USER);
-                }
+            // 没有token，重置用户状态
+            if (!storedToken) {
+                _reset();
+                setIsLoading(false);
+                return;
             }
-        } else {
-            setUser(null);
-            setToken(null);
-            localStorage.removeItem(STORE_KEYS.USER);
-            localStorage.removeItem(STORE_KEYS.TOKEN);
-        }
 
-        setIsLoading(false);
+            // 有token，设置token
+            updateToken(storedToken);
+
+            // 调用API验证令牌有效性并获取最新的用户信息
+            try {
+                parseResponse(await getServerApi().authentication.authControllerAccount(), {
+                    onSuccess: (data) => updateUser(data),
+                    onError: () => _reset(),
+                });
+            } catch (error) {
+                _reset();
+                console.error('Failed to validate token', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initAuth();
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // 如果 user/token 发生变化，则更新 localStorage
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem(STORE_KEYS.USER, JSON.stringify(user));
-        } else {
-            localStorage.removeItem(STORE_KEYS.USER);
-        }
-    }, [user]);
-
-    useEffect(() => {
-        if (token) {
-            localStorage.setItem(STORE_KEYS.TOKEN, token);
-        } else {
-            localStorage.removeItem(STORE_KEYS.TOKEN);
-        }
-    }, [token]);
 
     const logout = async (isLogoutAll: boolean = false) => {
         try {
@@ -61,12 +53,31 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
         } catch (error) {
             console.error('Logout error', error);
         } finally {
-            setUser(null);
-            localStorage.removeItem(STORE_KEYS.USER);
+            _reset();
+        }
+    };
 
-            setToken(null);
+    const updateUser = (user: ContextUser | null) => {
+        setUser(user);
+        if (user) {
+            localStorage.setItem(STORE_KEYS.USER, JSON.stringify(user));
+        } else {
+            localStorage.removeItem(STORE_KEYS.USER);
+        }
+    };
+
+    const updateToken = (token: string | null) => {
+        setToken(token);
+        if (token) {
+            localStorage.setItem(STORE_KEYS.TOKEN, token);
+        } else {
             localStorage.removeItem(STORE_KEYS.TOKEN);
         }
+    };
+
+    const _reset = () => {
+        updateUser(null);
+        updateToken(null);
     };
 
     return (
@@ -74,9 +85,9 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
             value={{
                 isLoading,
                 user,
-                setUser,
+                setUser: updateUser,
                 token,
-                setToken,
+                setToken: updateToken,
                 logout
             }}
         >

@@ -11,6 +11,8 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { EmailLoginDto } from './models/EmailLoginDto';
+export type { GitHubAuthDto } from './models/GitHubAuthDto';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 
 export { AuthenticationService } from './services/AuthenticationService';
+export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
