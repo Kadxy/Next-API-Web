@@ -1,6 +1,6 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button, Empty, Typography } from '@douyinfe/semi-ui';
-import { IconRefresh } from '@douyinfe/semi-icons';
+import {Component, ErrorInfo, ReactNode} from 'react';
+import {Button, Empty, Typography} from '@douyinfe/semi-ui';
+import {IconRefresh} from '@douyinfe/semi-icons';
 
 interface Props {
     children: ReactNode;
@@ -29,7 +29,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-        console.error('错误边界捕获到错误:', error, errorInfo);
+        console.error('Error boundary caught an error:', error, errorInfo);
     }
 
     handleReload = (): void => {
@@ -51,19 +51,19 @@ class ErrorBoundary extends Component<Props, State> {
                     justifyContent: 'center'
                 }}>
                     <Empty
-                        title="页面出错了"
+                        title="Error"
                         description={
                             <div>
                                 <Typography.Text type="danger">
-                                    {this.state.error?.message || '发生未知错误'}
+                                    {this.state.error?.message || 'An unknown error has occurred.'}
                                 </Typography.Text>
-                                <div style={{ marginTop: '20px' }}>
+                                <div style={{marginTop: '20px'}}>
                                     <Button
                                         theme="solid"
-                                        icon={<IconRefresh />}
+                                        icon={<IconRefresh/>}
                                         onClick={this.handleReload}
                                     >
-                                        刷新页面
+                                        Refresh the page
                                     </Button>
                                 </div>
                             </div>

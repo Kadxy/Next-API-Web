@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-api": "openapi-typescript-codegen --input http://localhost:9527/openapi --output ./src/api --client axios"
+    "generate-api": "openapi --input http://localhost:9527/openapi --output ./src/api/generated --name ServerAPI --useOptions --useUnionTypes --client axios"
   },
   "dependencies": {
     "@douyinfe/semi-icons": "^2.76.1",
