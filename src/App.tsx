@@ -1,52 +1,55 @@
-import { Layout, Nav } from '@douyinfe/semi-ui';
-import { IconHome, IconHistogram, IconLive, IconSetting, IconSemiLogo } from '@douyinfe/semi-icons';
+import { Layout, Nav, Toast, Typography } from '@douyinfe/semi-ui';
+import { IconHome, IconSetting } from '@douyinfe/semi-icons';
 import { Path } from './lib/constants/paths';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 type PathKey = (typeof Path)[keyof typeof Path];
 
+const Header = () => {
+    return (
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%',
+        }}>
+            <Typography.Title heading={2} style={{ fontSize: '28px' }}>
+                {import.meta.env.VITE_APP_NAME}
+            </Typography.Title>
+        </div>
+    );
+};
+
 const App = () => {
-    const { Sider: Sidebar, Content } = Layout;
     const navigate = useNavigate();
     const { pathname } = useLocation();
 
-    const [currentPath, setCurrentPath] = useState<PathKey>(Path.HOME);
+    // Set toast config
+    Toast.config({ theme: 'light' });
 
+    // Current path
+    const [currentPath, setCurrentPath] = useState<PathKey>(Path.ROOT);
+
+    // Update current path when location changes
     useEffect(() => setCurrentPath(pathname as PathKey), [pathname]);
 
     return (
-        <Layout style={{ border: '1px solid var(--semi-color-border)', height: '100vh' }}>
-            <Sidebar style={{ backgroundColor: 'var(--semi-color-bg-1)' }}>
+        <Layout style={{ height: '100vh' }}>
+            <Layout.Sider>
                 <Nav
                     selectedKeys={[currentPath]}
-                    style={{ height: '100%' }}
+                    style={{ width: '263px', height: '100%' }}
                     items={[
-                        { itemKey: Path.HOME, text: '首页', icon: <IconHome size="large" /> },
-                        { itemKey: Path.DATA, text: '基础数据', icon: <IconHistogram size="large" /> },
-                        { itemKey: Path.TEST, text: '测试功能', icon: <IconLive size="large" /> },
+                        { itemKey: Path.ROOT, text: '首页', icon: <IconHome size="large" /> },
                         { itemKey: Path.SETTINGS, text: '设置', icon: <IconSetting size="large" /> },
                     ]}
                     onSelect={(data) => navigate(data.itemKey as PathKey)}
-                    header={{
-                        logo: <IconSemiLogo />,
-                        text: 'World AI Web',
-                    }}
-                    footer={{
-                        collapseButton: false,
-                    }}
+                    header={<Header />}
                 />
-            </Sidebar>
-            <Layout>
-                <Content
-                    style={{
-                        padding: '24px',
-                        backgroundColor: 'var(--semi-color-bg-0)',
-                        overflow: 'auto',
-                    }}
-                >
-                    <Outlet />
-                </Content>
+            </Layout.Sider>
+            <Layout style={{ padding: '24px', height: '100%', overflow: 'auto' }}>
+                <Outlet />
             </Layout>
         </Layout>
     );
