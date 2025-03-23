@@ -9,27 +9,6 @@ import { getServerApi, parseResponse } from '../api/utils';
 import GoogleIcon from '@/assets/icons/google.svg?react';
 import { ContextUser } from '../lib/context/AuthContext';
 
-// 服务器返回的用户数据结构
-interface ServerUser {
-    uid: string;
-    displayName: string;
-    avatar: string;
-
-    // 可能还有其他属性
-    [key: string]: unknown;
-}
-
-interface LoginResponse {
-    user: ServerUser;
-    token: string;
-}
-
-// 服务端响应格式
-interface ServerResponse<T = unknown> {
-    success: boolean;
-    data?: T;
-    msg?: string;
-}
 
 const Login: FC = () => {
     const { user, setUser, token, setToken, isLoading: isAuthLoading } = useAuth();
@@ -55,30 +34,38 @@ const Login: FC = () => {
     }, [countdown]);
 
     useEffect(() => {
-        const handleGitHubCallback = async () => {
-            const githubCallback = searchParams.get('github_callback');
-            if (githubCallback) {
-                const code = searchParams.get('code');
-                const state = searchParams.get('state') || '';
-                if (code && processedCode.current !== code) {
-                    try {
-                        processedCode.current = code;
-                        setIsProcessingCallback(true);
-                        setSearchParams({});
+        const handleCallback = async () => {
+            if (isProcessingCallback) return;
+
+            const isGithubCallback = searchParams.get('github_callback') === '1';
+            const isGoogleCallback = searchParams.get('google_callback') === '1';
+            const code = searchParams.get('code');
+            const state = searchParams.get('state');
+
+            if (!code || !state) return;
+            if (processedCode.current === code) return;
+            if (!isGithubCallback && !isGoogleCallback) return;
+
+            try {
+                setIsProcessingCallback(true);
+                setSearchParams({});
+                processedCode.current = code;
+                switch (true) {
+                    case isGithubCallback:
                         await handleGithubCallback(code, state);
-                    } catch (error) {
-                        console.error('GitHub callback error:', error);
-                        Toast.error({ content: '登录失败', stack: true });
-                    } finally {
-                        setIsProcessingCallback(false);
-                    }
-                } else if (!code) {
-                    Toast.error({ content: '登录失败' });
+                        break;
+                    case isGoogleCallback:
+                        await handleGoogleCallback(code, state);
+                        break;
                 }
+            } catch (error) {
+                console.error('登录失败', error);
+            } finally {
+                setIsProcessingCallback(false);
             }
         };
 
-        handleGitHubCallback();
+        handleCallback();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
@@ -86,22 +73,17 @@ const Login: FC = () => {
         return <Navigate to={from} replace />;
     }
 
-    const handleLoginSuccess = (data: LoginResponse) => {
-        // 将服务器返回的用户数据映射到 ContextUser
-        const contextUser: ContextUser = {
-            uid: data.user.uid,
-            displayName: data.user.displayName,
-            avatar: data.user.avatar
-        };
-
-        setUser(contextUser);
-        setToken(data.token);
+    // 统一登录成功处理
+    const handleLoginSuccess = (data: { user: ContextUser, token: string }) => {
+        const { user, token } = data;
+        setUser(user);
+        setToken(token);
         navigate(from, { replace: true });
         Toast.success({ content: '登录成功' });
     };
 
+    // 发送验证码
     const sendVerifyCode = async () => {
-        // 恢复邮箱验证
         if (!inputs.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email)) {
             Toast.error({ content: '请输入有效的邮箱地址' });
             return;
@@ -112,13 +94,10 @@ const Login: FC = () => {
             parseResponse(await api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
                     setShowVerifyCode(true);
-                    setCountdown(60); // 60秒倒计时
+                    setCountdown(60);
                     Toast.success({ content: '验证码已发送' });
                 },
-                onError: (errorMsg) => {
-                    console.error('Send verify code error:', errorMsg);
-                    Toast.error({ content: errorMsg });
-                }
+                onError: (errorMsg) => Toast.error({ content: errorMsg })
             });
         } catch (error) {
             console.error('Send verify code error:', error);
@@ -127,13 +106,12 @@ const Login: FC = () => {
         }
     };
 
+    // 验证验证码
     const handleVerifyCode = async (values: { email: string, code: string }) => {
         setIsSubmitting(true);
         try {
             parseResponse(await api.authentication.authControllerLogin({ requestBody: values }), {
-                onSuccess: (data) => {
-                    handleLoginSuccess(data);
-                },
+                onSuccess: (data) => handleLoginSuccess(data),
                 onError: (errorMsg) => {
                     setInputs({ ...inputs, code: '' });
                     Toast.error({ content: errorMsg });
@@ -146,11 +124,7 @@ const Login: FC = () => {
         }
     };
 
-    const backToEmailInput = () => {
-        setShowVerifyCode(false);
-        setInputs({ ...inputs, code: '' });
-    };
-
+    // 获取 Github 登录配置
     const handleGithubLogin = async () => {
         try {
             parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
@@ -159,39 +133,52 @@ const Login: FC = () => {
             });
         } catch (error) {
             console.error('GitHub login error:', error);
-            Toast.error({ content: '登录失败', stack: true });
+            Toast.error({ content: '获取 Github 登录配置失败', stack: true });
         }
     };
 
+    // 处理 Github 回调
     const handleGithubCallback = async (code: string, state: string): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-            api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } })
-                .then((response: ServerResponse<LoginResponse>) => {
-                    // 直接检查响应格式
-                    if (response && response.success && response.data) {
-                        handleLoginSuccess(response.data);
-                        resolve();
-                    } else if (response && !response.success && response.msg) {
-                        Toast.error({ content: response.msg, stack: true });
-                        reject(new Error(response.msg));
-                    } else {
-                        Toast.error({ content: '登录响应格式错误', stack: true });
-                        reject(new Error('登录响应格式错误'));
-                    }
-                })
-                .catch((error) => {
-                    console.error('GitHub login error:', error);
-                    Toast.error({ content: '登录请求失败', stack: true });
-                    reject(error);
-                });
+        parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
+            onSuccess: (data) => handleLoginSuccess(data),
+            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
         });
     };
+
+    // 获取 Google 登录配置
+    const handleGoogleLogin = async () => {
+        try {
+            parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
+                onSuccess: (data) => window.location.href = data.oauthUrl,
+                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+            });
+        } catch (error) {
+            console.error('Google login error:', error);
+            Toast.error({ content: '获取 Google 登录配置失败', stack: true });
+        }
+    };
+
+    // 处理 Google 回调
+    const handleGoogleCallback = async (code: string, state: string): Promise<void> => {
+        parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
+            onSuccess: (data) => handleLoginSuccess(data),
+            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+        });
+    };
+
 
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Enter' && !showVerifyCode) {
             sendVerifyCode();
         }
     };
+
+    // 返回邮箱输入
+    const backToEmailInput = () => {
+        setShowVerifyCode(false);
+        setInputs({ ...inputs, code: '' });
+    };
+
 
     const renderVerifyCodeInput = () => (
         <>
@@ -308,7 +295,7 @@ const Login: FC = () => {
                     transition: 'all 0.2s ease'
                 }}
                 icon={<Icon svg={<GoogleIcon />} />}
-                onClick={() => Toast.info({ content: 'Google 登录功能即将上线' })}
+                onClick={handleGoogleLogin}
             >
                 通过 Google 登录
             </Button>
@@ -333,7 +320,6 @@ const Login: FC = () => {
     );
 
     const renderContent = () => (
-
         <Card
             style={{
                 width: '100%',
