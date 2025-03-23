@@ -2,6 +2,7 @@ import { Path } from '../constants/paths';
 import Home from '../../pages/Home';
 import Settings from '../../pages/Settings';
 import Login from '../../pages/Login';
+import Account from '../../pages/Account';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
             {
                 element: <ProtectedRoute />,
                 children: [
+                    {
+                        path: Path.ACCOUNT,
+                        element: <Account />,
+                    },
                     {
                         path: Path.SETTINGS,
                         element: <Settings />,

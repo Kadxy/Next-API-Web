@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Object } from '../models/Object';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class PasskeyAuthenticationService {
@@ -22,10 +23,16 @@ export class PasskeyAuthenticationService {
      * @returns any
      * @throws ApiError
      */
-    public passkeyControllerVerifyRegistrationResponse(): CancelablePromise<any> {
+    public passkeyControllerVerifyRegistrationResponse({
+        requestBody,
+    }: {
+        requestBody: Object,
+    }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/passkey/register',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -46,18 +53,19 @@ export class PasskeyAuthenticationService {
      */
     public passkeyControllerVerifyAuthenticationResponse({
         state,
+        requestBody,
     }: {
-        /**
-         * random string
-         */
         state: string,
+        requestBody: Object,
     }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/passkey/authentication',
-            path: {
+            query: {
                 'state': state,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -68,7 +76,7 @@ export class PasskeyAuthenticationService {
     public passkeyControllerGetUserPasskeys(): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/auth/passkey/list',
+            url: '/auth/passkey',
         });
     }
     /**

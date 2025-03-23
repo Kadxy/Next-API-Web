@@ -9,7 +9,6 @@ import { getServerApi, parseResponse } from '../api/utils';
 import GoogleIcon from '@/assets/icons/google.svg?react';
 import { ContextUser } from '../lib/context/AuthContext';
 import { startAuthentication } from '@simplewebauthn/browser';
-import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 
 const ButtonStyle = {
     height: '42px',
@@ -52,8 +51,8 @@ const Login: FC = () => {
     const [inputs, setInputs] = useState({ email: '', code: '' });
     const [showVerifyCode, setShowVerifyCode] = useState(false);
     const [countdown, setCountdown] = useState(0);
-    const [isProcessingCallback, setIsProcessingCallback] = useState(false);
-    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+    const [isPasskeyAuthenticating, setIsPasskeyAuthenticating] = useState(false);
+    const [isOAuthCallbackProcessing, setIsOAuthCallbackProcessing] = useState(false);
     const processedCode = useRef<string | null>(null);
     const api = getServerApi();
 
@@ -66,7 +65,7 @@ const Login: FC = () => {
 
     useEffect(() => {
         const handleCallback = async () => {
-            if (isProcessingCallback) return;
+            if (isOAuthCallbackProcessing) return;
 
             const isGithubCallback = searchParams.get('github_callback') === '1';
             const isGoogleCallback = searchParams.get('google_callback') === '1';
@@ -78,7 +77,7 @@ const Login: FC = () => {
             if (!isGithubCallback && !isGoogleCallback) return;
 
             try {
-                setIsProcessingCallback(true);
+                setIsOAuthCallbackProcessing(true);
                 setSearchParams({});
                 processedCode.current = code;
                 const platform = isGithubCallback ? 'github' : 'google';
@@ -86,7 +85,7 @@ const Login: FC = () => {
             } catch (error) {
                 console.error('登录失败', error);
             } finally {
-                setIsProcessingCallback(false);
+                setIsOAuthCallbackProcessing(false);
             }
         };
 
@@ -149,7 +148,7 @@ const Login: FC = () => {
     // Passkey 登录
     const handlePasskeyLogin = async () => {
         try {
-            setIsPasskeyLoading(true);
+            setIsPasskeyAuthenticating(true);
 
             // 1. 从服务器获取认证选项
             parseResponse(await api.passkeyAuthentication.passkeyControllerGenerateAuthenticationOptions(), {
@@ -163,21 +162,14 @@ const Login: FC = () => {
                         });
 
                         // 3. 将认证响应发送到服务器进行验证
-                        const response = await fetch(`/api/auth/passkey/authentication/${state}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(authenticationResponse),
+                        parseResponse(await api.passkeyAuthentication.passkeyControllerVerifyAuthenticationResponse({
+                            state,
+                            requestBody: authenticationResponse
+                        }), {
+                            onSuccess: (data) => handleLoginResponse(data),
+                            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
                         });
-                        const responseData = await response.json();
-                        if (response.ok) {
-                            handleLoginResponse(responseData);
-                        } else {
-                            Toast.error({ content: responseData.message || '认证失败', stack: true });
-                        }
                     } catch (error) {
-                        // 用户取消或认证失败
                         console.error('Passkey 认证错误:', error);
                         const errorMessage = error instanceof Error ? error.message : '认证失败';
                         Toast.error({ content: `Passkey 认证失败：${errorMessage}` });
@@ -189,7 +181,7 @@ const Login: FC = () => {
             console.error('Passkey 登录错误:', error);
             Toast.error({ content: '无法启动 Passkey 登录' });
         } finally {
-            setIsPasskeyLoading(false);
+            setIsPasskeyAuthenticating(false);
         }
     };
 
@@ -344,6 +336,7 @@ const Login: FC = () => {
                 }}
                 onClick={sendVerifyCode}
                 loading={sendingVerifyCode}
+                disabled={isPasskeyAuthenticating || isOAuthCallbackProcessing}
                 icon={<IconMail />}
             >
                 使用邮箱继续
@@ -357,7 +350,8 @@ const Login: FC = () => {
                     backgroundColor: BrandColors.passkey.background,
                 }}
                 onClick={handlePasskeyLogin}
-                loading={isPasskeyLoading}
+                loading={isPasskeyAuthenticating}
+                disabled={sendingVerifyCode || isOAuthCallbackProcessing}
                 icon={<IconLock />}
             >
                 使用 Passkey 登录
@@ -376,6 +370,7 @@ const Login: FC = () => {
                 }}
                 icon={<IconGithubLogo style={{ color: 'white' }} />}
                 onClick={() => handleOauthLoginClick('github')}
+                disabled={isPasskeyAuthenticating || sendingVerifyCode || isOAuthCallbackProcessing}
             >
                 GitHub 登录
             </Button>
@@ -390,6 +385,7 @@ const Login: FC = () => {
                 }}
                 icon={<Icon svg={<GoogleIcon />} />}
                 onClick={() => handleOauthLoginClick('google')}
+                disabled={isPasskeyAuthenticating || sendingVerifyCode || isOAuthCallbackProcessing}
             >
                 Google 登录
             </Button>
@@ -410,7 +406,7 @@ const Login: FC = () => {
             <Spin
                 tip="正在登录中..."
                 size="large"
-                spinning={isProcessingCallback}
+                spinning={isPasskeyAuthenticating || isOAuthCallbackProcessing}
             >
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                     <Typography.Title heading={3} style={{ margin: 0 }}>

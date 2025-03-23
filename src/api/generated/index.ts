@@ -13,6 +13,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 export type { EmailLoginDto } from './models/EmailLoginDto';
 export type { GitHubAuthDto } from './models/GitHubAuthDto';
 export type { GoogleAuthDto } from './models/GoogleAuthDto';
+export type { Object } from './models/Object';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 
 export { AuthenticationService } from './services/AuthenticationService';
