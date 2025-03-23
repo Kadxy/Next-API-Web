@@ -8,11 +8,13 @@ import { AxiosHttpRequest } from './core/AxiosHttpRequest';
 import { AuthenticationService } from './services/AuthenticationService';
 import { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 import { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
+import { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class ServerAPI {
     public readonly authentication: AuthenticationService;
     public readonly gitHubAuthentication: GitHubAuthenticationService;
     public readonly googleAuthentication: GoogleAuthenticationService;
+    public readonly passkeyAuthentication: PasskeyAuthenticationService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = AxiosHttpRequest) {
         this.request = new HttpRequest({
@@ -29,6 +31,7 @@ export class ServerAPI {
         this.authentication = new AuthenticationService(this.request);
         this.gitHubAuthentication = new GitHubAuthenticationService(this.request);
         this.googleAuthentication = new GoogleAuthenticationService(this.request);
+        this.passkeyAuthentication = new PasskeyAuthenticationService(this.request);
     }
 }
 

@@ -1,6 +1,6 @@
 import { FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { Button, Card, Divider, Input, PinCode, Space, Toast, Typography, Spin } from '@douyinfe/semi-ui';
-import Icon, { IconArrowLeft, IconGithubLogo, IconKey, IconMail } from '@douyinfe/semi-icons';
+import Icon, { IconArrowLeft, IconGithubLogo, IconMail, IconLock } from '@douyinfe/semi-icons';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
@@ -8,7 +8,38 @@ import { getServerApi, parseResponse } from '../api/utils';
 // @ts-expect-error handle svg file
 import GoogleIcon from '@/assets/icons/google.svg?react';
 import { ContextUser } from '../lib/context/AuthContext';
+import { startAuthentication } from '@simplewebauthn/browser';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 
+const ButtonStyle = {
+    height: '42px',
+    fontSize: '14px',
+    borderRadius: '8px',
+    transition: 'all 0.2s ease',
+    fontWeight: 500,
+    marginBottom: '10px'
+};
+
+// 品牌标准颜色
+const BrandColors = {
+    github: {
+        background: '#24292e',
+        text: '#ffffff'
+    },
+    google: {
+        background: '#ffffff',
+        text: '#5f6368',
+        border: '#dadce0'
+    },
+    passkey: {
+        background: '#4285f4',
+        text: '#ffffff'
+    },
+    email: {
+        background: 'var(--semi-color-primary)',
+        text: '#ffffff'
+    }
+};
 
 const Login: FC = () => {
     const { user, setUser, token, setToken, isLoading: isAuthLoading } = useAuth();
@@ -22,8 +53,8 @@ const Login: FC = () => {
     const [showVerifyCode, setShowVerifyCode] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const [isProcessingCallback, setIsProcessingCallback] = useState(false);
+    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
     const processedCode = useRef<string | null>(null);
-
     const api = getServerApi();
 
     useEffect(() => {
@@ -50,14 +81,8 @@ const Login: FC = () => {
                 setIsProcessingCallback(true);
                 setSearchParams({});
                 processedCode.current = code;
-                switch (true) {
-                    case isGithubCallback:
-                        await handleGithubCallback(code, state);
-                        break;
-                    case isGoogleCallback:
-                        await handleGoogleCallback(code, state);
-                        break;
-                }
+                const platform = isGithubCallback ? 'github' : 'google';
+                await handleOauthCallback(platform, code, state);
             } catch (error) {
                 console.error('登录失败', error);
             } finally {
@@ -73,16 +98,10 @@ const Login: FC = () => {
         return <Navigate to={from} replace />;
     }
 
-    // 统一登录成功处理
-    const handleLoginSuccess = (data: { user: ContextUser, token: string }) => {
-        const { user, token } = data;
-        setUser(user);
-        setToken(token);
-        navigate(from, { replace: true });
-        Toast.success({ content: '登录成功' });
-    };
 
-    // 发送验证码
+    /* ------------------------------ auth step1 ------------------------------ */
+
+    // 发送邮箱验证码
     const sendVerifyCode = async () => {
         if (!inputs.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email)) {
             Toast.error({ content: '请输入有效的邮箱地址' });
@@ -100,18 +119,88 @@ const Login: FC = () => {
                 onError: (errorMsg) => Toast.error({ content: errorMsg })
             });
         } catch (error) {
+            Toast.error({ content: '发送验证码失败' });
             console.error('Send verify code error:', error);
         } finally {
             setSendingVerifyCode(false);
         }
     };
 
-    // 验证验证码
-    const handleVerifyCode = async (values: { email: string, code: string }) => {
+    // 通用 OAuth 登录前处理
+    const handleOauthLoginClick = async (platform: 'github' | 'google') => {
+        switch (platform) {
+            case 'github':
+                parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
+                    onSuccess: (data) => window.location.href = data.oauthUrl,
+                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                });
+                break;
+            case 'google':
+                parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
+                    onSuccess: (data) => window.location.href = data.oauthUrl,
+                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                });
+                break;
+            default:
+                Toast.error({ content: '无效的登录方式' });
+        }
+    };
+
+    // Passkey 登录
+    const handlePasskeyLogin = async () => {
+        try {
+            setIsPasskeyLoading(true);
+
+            // 1. 从服务器获取认证选项
+            parseResponse(await api.passkeyAuthentication.passkeyControllerGenerateAuthenticationOptions(), {
+                onSuccess: async (data) => {
+                    const { options, state } = data;
+
+                    try {
+                        // 2. 启动认证流程，让用户选择他们的 passkey
+                        const authenticationResponse = await startAuthentication({
+                            optionsJSON: options
+                        });
+
+                        // 3. 将认证响应发送到服务器进行验证
+                        const response = await fetch(`/api/auth/passkey/authentication/${state}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(authenticationResponse),
+                        });
+                        const responseData = await response.json();
+                        if (response.ok) {
+                            handleLoginResponse(responseData);
+                        } else {
+                            Toast.error({ content: responseData.message || '认证失败', stack: true });
+                        }
+                    } catch (error) {
+                        // 用户取消或认证失败
+                        console.error('Passkey 认证错误:', error);
+                        const errorMessage = error instanceof Error ? error.message : '认证失败';
+                        Toast.error({ content: `Passkey 认证失败：${errorMessage}` });
+                    }
+                },
+                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+            });
+        } catch (error) {
+            console.error('Passkey 登录错误:', error);
+            Toast.error({ content: '无法启动 Passkey 登录' });
+        } finally {
+            setIsPasskeyLoading(false);
+        }
+    };
+
+    /* ------------------------------ auth step2 ------------------------------ */
+
+    // 验证邮箱验证码
+    const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
         setIsSubmitting(true);
         try {
             parseResponse(await api.authentication.authControllerLogin({ requestBody: values }), {
-                onSuccess: (data) => handleLoginSuccess(data),
+                onSuccess: (data) => handleLoginResponse(data),
                 onError: (errorMsg) => {
                     setInputs({ ...inputs, code: '' });
                     Toast.error({ content: errorMsg });
@@ -124,49 +213,38 @@ const Login: FC = () => {
         }
     };
 
-    // 获取 Github 登录配置
-    const handleGithubLogin = async () => {
-        try {
-            parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
-                onSuccess: (data) => window.location.href = data.oauthUrl,
-                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-            });
-        } catch (error) {
-            console.error('GitHub login error:', error);
-            Toast.error({ content: '获取 Github 登录配置失败', stack: true });
+    // 通用 OAuth 登录回调
+    const handleOauthCallback = async (platform: 'github' | 'google', code: string, state: string) => {
+        switch (platform) {
+            case 'github':
+                parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
+                    onSuccess: (data) => handleLoginResponse(data),
+                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                });
+                break;
+            case 'google':
+                parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
+                    onSuccess: (data) => handleLoginResponse(data),
+                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                });
+                break;
         }
     };
 
-    // 处理 Github 回调
-    const handleGithubCallback = async (code: string, state: string): Promise<void> => {
-        parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
-            onSuccess: (data) => handleLoginSuccess(data),
-            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-        });
+    /* ------------------------------ auth step3 ------------------------------ */
+
+    // 通用登录处理
+    const handleLoginResponse = (data: { user: ContextUser, token: string }) => {
+        const { user, token } = data;
+        setUser(user);
+        setToken(token);
+        navigate(from, { replace: true });
+        Toast.success({ content: '登录成功' });
     };
 
-    // 获取 Google 登录配置
-    const handleGoogleLogin = async () => {
-        try {
-            parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
-                onSuccess: (data) => window.location.href = data.oauthUrl,
-                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-            });
-        } catch (error) {
-            console.error('Google login error:', error);
-            Toast.error({ content: '获取 Google 登录配置失败', stack: true });
-        }
-    };
+    /* ------------------------------ handle events ------------------------------ */
 
-    // 处理 Google 回调
-    const handleGoogleCallback = async (code: string, state: string): Promise<void> => {
-        parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
-            onSuccess: (data) => handleLoginSuccess(data),
-            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-        });
-    };
-
-
+    // 处理键盘事件
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Enter' && !showVerifyCode) {
             sendVerifyCode();
@@ -179,10 +257,12 @@ const Login: FC = () => {
         setInputs({ ...inputs, code: '' });
     };
 
+    /* ------------------------------ render components ------------------------------ */
 
+    // 渲染验证码输入
     const renderVerifyCodeInput = () => (
         <>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
                 <Button
                     icon={<IconArrowLeft size="large" />}
                     theme="borderless"
@@ -190,28 +270,28 @@ const Login: FC = () => {
                     style={{ marginRight: '12px', color: 'var(--semi-color-primary)' }}
                 />
                 <Typography.Text
-                    style={{ fontSize: '16px', fontWeight: 500 }}>{inputs.email}</Typography.Text>
+                    style={{ fontSize: '15px', fontWeight: 500 }}>{inputs.email}</Typography.Text>
             </div>
             <Typography.Text type="secondary"
-                style={{ display: 'block', marginBottom: '20px', fontSize: '15px' }}>
+                style={{ display: 'block', marginBottom: '16px', fontSize: '14px' }}>
                 请输入发送到您邮箱的验证码
             </Typography.Text>
             <PinCode
                 size="large"
                 autoFocus
                 format={/[A-Z]|[0-9]|[a-z]/}
-                onComplete={(value) => handleVerifyCode({ email: inputs.email, code: value })}
+                onComplete={(value) => handleVerifyCodeLogin({ email: inputs.email, code: value })}
                 onChange={(value) => setInputs({ ...inputs, code: value.toUpperCase() })}
                 value={inputs.code}
-                style={{ width: '100%', marginBottom: '24px' }}
+                style={{ width: '100%', marginBottom: '16px' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
                 <Button
                     type="tertiary"
                     disabled={countdown > 0}
                     onClick={sendVerifyCode}
                     loading={sendingVerifyCode}
-                    style={{ fontSize: '14px' }}
+                    style={{ fontSize: '13px' }}
                 >
                     {countdown > 0 ? `重新发送 (${countdown}s)` : '重新发送验证码'}
                 </Button>
@@ -222,30 +302,35 @@ const Login: FC = () => {
                 theme="solid"
                 type="primary"
                 loading={isSubmitting}
-                onClick={() => handleVerifyCode({ email: inputs.email, code: inputs.code })}
-                style={{ height: '48px', fontSize: '16px', borderRadius: '8px' }}
+                onClick={() => handleVerifyCodeLogin({ email: inputs.email, code: inputs.code })}
+                style={{
+                    ...ButtonStyle,
+                    backgroundColor: BrandColors.email.background,
+                }}
             >
                 登录
             </Button>
         </>
     );
 
+    // 渲染邮箱输入
     const renderEmailInput = () => (
-        <Space vertical spacing="loose" align="start" style={{ width: '100%' }}>
+        <Space vertical spacing={12} align="start" style={{ width: '100%' }}>
             <Input
                 size="large"
                 placeholder="请输入邮箱"
                 prefix={<IconMail style={{ color: 'var(--semi-color-text-2)' }} />}
                 style={{
-                    height: '48px',
+                    height: '42px',
                     borderRadius: '8px',
-                    width: '100%'
+                    width: '100%',
+                    marginBottom: '4px'
                 }}
                 value={inputs.email}
                 onChange={(value) => setInputs({ ...inputs, email: value })}
                 onKeyDown={handleKeyDown}
                 autoFocus
-                autoComplete="email"
+                autoComplete="username webauthn"
             />
             <Button
                 size="large"
@@ -253,92 +338,84 @@ const Login: FC = () => {
                 theme="solid"
                 type="primary"
                 style={{
-                    height: '48px',
-                    fontSize: '16px',
-                    borderRadius: '8px'
+                    ...ButtonStyle,
+                    color: BrandColors.email.text,
+                    backgroundColor: BrandColors.email.background,
                 }}
                 onClick={sendVerifyCode}
                 loading={sendingVerifyCode}
                 icon={<IconMail />}
             >
-                通过邮箱验证码登录
+                使用邮箱继续
             </Button>
-            <Divider style={{ margin: '8px 0' }}>
-                <span style={{ color: 'var(--semi-color-text-2)', padding: '0 12px' }}>或者</span>
+            <Button
+                size="large"
+                block
+                style={{
+                    ...ButtonStyle,
+                    color: BrandColors.passkey.text,
+                    backgroundColor: BrandColors.passkey.background,
+                }}
+                onClick={handlePasskeyLogin}
+                loading={isPasskeyLoading}
+                icon={<IconLock />}
+            >
+                使用 Passkey 登录
+            </Button>
+            <Divider style={{ margin: '4px 0 8px' }}>
+                <span style={{ color: 'var(--semi-color-text-2)', padding: '0 12px', fontSize: '13px' }}>或</span>
             </Divider>
             <Button
                 size="large"
                 block
                 style={{
-                    height: '48px',
-                    fontSize: '16px',
-                    backgroundColor: '#24292e',
-                    color: 'white',
-                    borderRadius: '8px',
-                    transition: 'background-color 0.2s ease'
+                    ...ButtonStyle,
+                    color: BrandColors.github.text,
+                    backgroundColor: BrandColors.github.background,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}
                 icon={<IconGithubLogo style={{ color: 'white' }} />}
-                onClick={handleGithubLogin}
+                onClick={() => handleOauthLoginClick('github')}
             >
-                通过 Github 登录
+                GitHub 登录
             </Button>
             <Button
                 size="large"
                 block
                 style={{
-                    height: '48px',
-                    fontSize: '16px',
-                    backgroundColor: 'white',
-                    color: '#444',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease'
+                    ...ButtonStyle,
+                    color: BrandColors.google.text,
+                    backgroundColor: BrandColors.google.background,
+                    border: `1px solid ${BrandColors.google.border}`,
                 }}
                 icon={<Icon svg={<GoogleIcon />} />}
-                onClick={handleGoogleLogin}
+                onClick={() => handleOauthLoginClick('google')}
             >
-                通过 Google 登录
-            </Button>
-            <Button
-                size="large"
-                block
-                style={{
-                    height: '48px',
-                    fontSize: '16px',
-                    backgroundColor: 'white',
-                    color: '#444',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease'
-                }}
-                icon={<IconKey />}
-                onClick={() => Toast.info({ content: 'Passkey 登录功能即将上线' })}
-            >
-                通过 Passkey 登录
+                Google 登录
             </Button>
         </Space>
     );
 
+    // 渲染登录内容
     const renderContent = () => (
         <Card
             style={{
                 width: '100%',
-                maxWidth: 480,
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-                padding: '32px',
+                maxWidth: 450,
+                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+                padding: '24px 32px',
                 borderRadius: '12px',
-                transition: 'all 0.3s ease'
+                border: 'none'
             }}>
             <Spin
                 tip="正在登录中..."
                 size="large"
                 spinning={isProcessingCallback}
             >
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <Typography.Title heading={2}
-                        style={{ fontSize: '28px', margin: '0 0 8px 0' }}>登录</Typography.Title>
-                    <Typography.Text style={{ fontSize: '16px', color: 'var(--semi-color-text-2)' }}>欢迎使用World AI
-                        Web</Typography.Text>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <Typography.Title heading={3} style={{ margin: 0 }}>
+                        登录
+                    </Typography.Title>
                 </div>
 
                 {showVerifyCode ? renderVerifyCodeInput() : renderEmailInput()}
@@ -352,7 +429,7 @@ const Login: FC = () => {
             justifyContent: 'center',
             alignItems: 'center',
             height: '100%',
-            padding: '16px'
+            width: '100%',
         }}>
             {renderContent()}
         </div>

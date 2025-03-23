@@ -18,3 +18,4 @@ export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 export { AuthenticationService } from './services/AuthenticationService';
 export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 export { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
+export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';

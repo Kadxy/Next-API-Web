@@ -14,6 +14,9 @@ importers:
       '@douyinfe/semi-ui':
         specifier: ^2.76.1
         version: 2.76.1(acorn@8.14.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@simplewebauthn/browser':
+        specifier: ^13.1.0
+        version: 13.1.0
       axios:
         specifier: ^1.6.7
         version: 1.8.4
@@ -1011,6 +1014,9 @@ packages:
     resolution: {integrity: sha512-aRXd7tRZkWLqGbChgcMMDEHjOKudo1kChb1Jt1IfR8cY/KIpgNviLeJy5FUb9IpSuQj8dU2fAYNMPW/hLKOSTw==}
     cpu: [x64]
     os: [win32]
+
+  '@simplewebauthn/browser@13.1.0':
+    resolution: {integrity: sha512-WuHZ/PYvyPJ9nxSzgHtOEjogBhwJfC8xzYkPC+rR/+8chl/ft4ngjiK8kSU5HtRJfczupyOh33b25TjYbvwAcg==}
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
@@ -3763,6 +3769,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.36.0':
     optional: true
+
+  '@simplewebauthn/browser@13.1.0': {}
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.26.10)':
     dependencies:
