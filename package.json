@@ -15,6 +15,7 @@
     "@douyinfe/semi-ui": "^2.76.1",
     "@simplewebauthn/browser": "^13.1.0",
     "axios": "^1.6.7",
+    "dayjs": "^1.11.13",
     "form-data": "^4.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

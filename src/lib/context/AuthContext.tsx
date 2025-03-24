@@ -19,7 +19,7 @@ interface AuthContextType {
     setToken: (token: string | null) => void;
 
     // Methods
-    logout: (isLogoutAll: boolean) => void;
+    logout: (isLogoutAll: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

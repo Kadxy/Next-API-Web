@@ -88,7 +88,7 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
                 setUser: updateUser,
                 token,
                 setToken: updateToken,
-                logout
+                logout,
             }}
         >
             {children}

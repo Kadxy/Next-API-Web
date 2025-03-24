@@ -2,7 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ListPasskeysResponseDto } from '../models/ListPasskeysResponseDto';
 import type { Object } from '../models/Object';
+import type { UpdatePasskeyDisplayNameRequestDto } from '../models/UpdatePasskeyDisplayNameRequestDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class PasskeyAuthenticationService {
@@ -70,13 +72,38 @@ export class PasskeyAuthenticationService {
     }
     /**
      * List User Passkeys
-     * @returns any
+     * @returns ListPasskeysResponseDto
      * @throws ApiError
      */
-    public passkeyControllerGetUserPasskeys(): CancelablePromise<any> {
+    public passkeyControllerGetUserPasskeys(): CancelablePromise<ListPasskeysResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/auth/passkey',
+        });
+    }
+    /**
+     * Update Passkey Display Name
+     * @returns any
+     * @throws ApiError
+     */
+    public passkeyControllerUpdatePasskeyDisplayName({
+        id,
+        requestBody,
+    }: {
+        /**
+         * Passkey ID
+         */
+        id: string,
+        requestBody: UpdatePasskeyDisplayNameRequestDto,
+    }): CancelablePromise<any> {
+        return this.httpRequest.request({
+            method: 'PATCH',
+            url: '/auth/passkey/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

@@ -2,7 +2,7 @@ import { Path } from '../constants/paths';
 import Home from '../../pages/Home';
 import Settings from '../../pages/Settings';
 import Login from '../../pages/Login';
-import Account from '../../pages/Account';
+import Account from '../../pages/Account/index';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
