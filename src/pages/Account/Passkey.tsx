@@ -7,7 +7,8 @@ import { getServerApi, parseResponse } from '../../api/utils';
 import { IllustrationNoContent, IllustrationNoContentDark } from '@douyinfe/semi-illustrations';
 import dayjs from 'dayjs';
 // @ts-expect-error handle svg file
-import PasskeyIcon from '@/assets/icons/passkey.svg?react';
+import PasskeyIcon from '@/assets/icons/passkey_24.svg?react';
+import { getErrorMsg } from '../../utils';
 
 const { Text, Title } = Typography;
 
@@ -35,7 +36,7 @@ const PasskeyManager: FC = () => {
                 onError: (errorMsg) => Toast.error({ content: errorMsg })
             });
         } catch (error) {
-            Toast.error({ content: '获取通行密钥列表失败: ' + (error instanceof Error ? error.message : '未知错误') });
+            Toast.error({ content: getErrorMsg(error, '获取通行密钥列表失败') });
         } finally {
             setIsLoading(false);
         }
@@ -53,7 +54,7 @@ const PasskeyManager: FC = () => {
                 onError: (errorMsg) => Toast.error({ content: errorMsg })
             });
         } catch (error) {
-            Toast.error({ content: '更新失败: ' + (error instanceof Error ? error.message : '未知错误') });
+            Toast.error({ content: getErrorMsg(error, '更新失败') });
         }
     };
 
@@ -78,7 +79,7 @@ const PasskeyManager: FC = () => {
                         onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
                     });
                 } catch (error) {
-                    Toast.error({ content: '删除失败:' + (error instanceof Error ? error.message : '未知错误') });
+                    Toast.error({ content: getErrorMsg(error, '删除失败') });
                 }
             },
         });
@@ -105,18 +106,18 @@ const PasskeyManager: FC = () => {
                         }), {
                             onSuccess: async () => {
                                 await fetchUserPasskeys();
-                                Toast.success({ content: '注册成功' });
+                                Toast.success({ content: '添加成功' });
                             },
                             onError: (errorMsg) => Toast.error({ content: errorMsg })
                         });
                     } catch (error) {
-                        Toast.error({ content: '注册失败: ' + (error instanceof Error ? error.message : '未知错误') });
+                        Toast.error({ content: getErrorMsg(error, '添加失败') });
                     }
                 },
                 onError: (errorMsg) => Toast.error({ content: errorMsg })
             });
         } catch (error) {
-            Toast.error({ content: '无法启动通行密钥注册:' + (error instanceof Error ? error.message : '未知错误') });
+            Toast.error({ content: getErrorMsg(error, '无法启动通行密钥注册') });
         } finally {
             setIsRegistering(false);
         }
@@ -161,7 +162,7 @@ const PasskeyManager: FC = () => {
 
     return (
         <Card
-            title="通行密钥管理"
+            title="通行密钥"
             style={{ width: '100%' }}
             loading={isLoading}
             headerExtraContent={

@@ -78,7 +78,7 @@ const AccountLinks: FC = () => {
 
     return (
         <Card
-            title="第三方账号"
+            title="关联账号"
             style={{ width: '100%' }}
         >
             <List

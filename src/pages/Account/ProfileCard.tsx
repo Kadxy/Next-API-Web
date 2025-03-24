@@ -36,7 +36,7 @@ const ProfileCard: FC = () => {
             <Row gutter={16}>
                 {/* 基本信息 */}
                 <Col span={16}>
-                    <Space spacing='loose' align='start'>
+                    <Space spacing='medium' align='start'>
                         {/* 头像 */}
                         {user.avatar ? (
                             <Avatar style={{ width: 48, height: 48 }} shape="circle" src={user?.avatar} />
@@ -65,7 +65,7 @@ const ProfileCard: FC = () => {
                                 注册时间: {dayjs(user.createdAt).format('YYYY年MM月DD日')}
                             </Text>
                             <Text type="tertiary" size="small">
-                                上次登录: {dayjs(user.lastLoginAt).format('YYYY年MM月DD日 HH:mm:ss')}
+                                上次登录: {user.lastLoginAt ? dayjs(user.lastLoginAt).format('YYYY年MM月DD日 HH:mm:ss') : '-'}
                             </Text>
                         </Space>
                         <Space>

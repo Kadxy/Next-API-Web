@@ -4,3 +4,5 @@ export const Path = {
   LOGIN: '/login',
   ACCOUNT: '/account',
 } as const; 
+
+export const NO_SIDEBAR_PATHS: (typeof Path)[keyof typeof Path][] = [Path.LOGIN];
