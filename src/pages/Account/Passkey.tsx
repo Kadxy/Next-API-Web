@@ -3,12 +3,11 @@ import { Button, Card, Empty, List, Modal, Toast, Typography, Input, Space } fro
 import Icon, { IconDelete, IconEdit } from '@douyinfe/semi-icons';
 import { startRegistration, PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { ListPasskeysResponseData } from '../../api/generated';
-import { getServerApi, parseResponse } from '../../api/utils';
+import { getServerApi, handleResponse } from '../../api/utils';
 import { IllustrationNoContent, IllustrationNoContentDark } from '@douyinfe/semi-illustrations';
-import dayjs from 'dayjs';
 // @ts-expect-error handle svg file
 import PasskeyIcon from '@/assets/icons/passkey_24.svg?react';
-import { getErrorMsg } from '../../utils';
+import { getDayjsEasyRead, getDayjsFormat, getErrorMsg } from '../../utils';
 
 const { Text, Title } = Typography;
 
@@ -31,9 +30,11 @@ const PasskeyManager: FC = () => {
     const fetchUserPasskeys = async () => {
         setIsLoading(true);
         try {
-            parseResponse(await api.passkeyAuthentication.passkeyControllerGetUserPasskeys(), {
+            await handleResponse(api.passkeyAuthentication.passkeyControllerGetUserPasskeys(), {
                 onSuccess: (data) => setPasskeys(data || []),
-                onError: (errorMsg) => Toast.error({ content: errorMsg })
+                onError: (errorMsg) => {
+                    Toast.error({ content: errorMsg })
+                }
             });
         } catch (error) {
             Toast.error({ content: getErrorMsg(error, '获取通行密钥列表失败') });
@@ -45,13 +46,15 @@ const PasskeyManager: FC = () => {
     // 更新passkey名称
     const handleUpdatePasskeyDisplayName = async (id: string, displayName: string) => {
         try {
-            parseResponse(await api.passkeyAuthentication.passkeyControllerUpdatePasskeyDisplayName({ id, requestBody: { displayName } }), {
-                onSuccess: () => {
-                    fetchUserPasskeys();
-                    Toast.success({ content: '更新成功' });
+            await handleResponse(api.passkeyAuthentication.passkeyControllerUpdatePasskeyDisplayName({ id, requestBody: { displayName } }), {
+                onSuccess: async () => {
+                    await fetchUserPasskeys();
                     setEditingPasskeyId(null);
+                    Toast.success({ content: '更新成功' });
                 },
-                onError: (errorMsg) => Toast.error({ content: errorMsg })
+                onError: (errorMsg) => {
+                    Toast.error({ content: errorMsg })
+                }
             });
         } catch (error) {
             Toast.error({ content: getErrorMsg(error, '更新失败') });
@@ -71,12 +74,14 @@ const PasskeyManager: FC = () => {
             content: '删除后将无法使用此通行密钥登录',
             onOk: async () => {
                 try {
-                    parseResponse(await api.passkeyAuthentication.passkeyControllerDeletePasskey({ id }), {
+                    await handleResponse(api.passkeyAuthentication.passkeyControllerDeletePasskey({ id }), {
                         onSuccess: async () => {
                             await fetchUserPasskeys();
                             Toast.success({ content: '删除成功', stack: true });
                         },
-                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
                     });
                 } catch (error) {
                     Toast.error({ content: getErrorMsg(error, '删除失败') });
@@ -90,7 +95,7 @@ const PasskeyManager: FC = () => {
         setIsRegistering(true);
         try {
             // 1. 获取注册选项
-            parseResponse(await api.passkeyAuthentication.passkeyControllerGenerateRegistrationOptions(), {
+            await handleResponse(api.passkeyAuthentication.passkeyControllerGenerateRegistrationOptions(), {
                 onSuccess: async (options) => {
                     if (!options) return;
 
@@ -101,20 +106,24 @@ const PasskeyManager: FC = () => {
                         });
 
                         // 3. 发送注册响应到服务器进行验证
-                        parseResponse(await api.passkeyAuthentication.passkeyControllerVerifyRegistrationResponse({
+                        await handleResponse(api.passkeyAuthentication.passkeyControllerVerifyRegistrationResponse({
                             requestBody: registrationResponse
                         }), {
                             onSuccess: async () => {
                                 await fetchUserPasskeys();
                                 Toast.success({ content: '添加成功' });
                             },
-                            onError: (errorMsg) => Toast.error({ content: errorMsg })
+                            onError: (errorMsg) => {
+                                Toast.error({ content: errorMsg })
+                            }
                         });
                     } catch (error) {
                         Toast.error({ content: getErrorMsg(error, '添加失败') });
                     }
                 },
-                onError: (errorMsg) => Toast.error({ content: errorMsg })
+                onError: (errorMsg) => {
+                    Toast.error({ content: errorMsg })
+                }
             });
         } catch (error) {
             Toast.error({ content: getErrorMsg(error, '无法启动通行密钥注册') });
@@ -125,20 +134,22 @@ const PasskeyManager: FC = () => {
 
     // 渲染通行密钥列表项
     const renderPasskeyItem = (passkey: ListPasskeysResponseData) => {
-
         return (
             <List.Item
                 main={
                     <Space vertical align="start">
                         <Space>
                             <Icon svg={<PasskeyIcon />} size='large' />
-                            <Title heading={5} >
+                            <Title
+                                style={{ maxWidth: 360 }}
+                                heading={5}
+                                ellipsis={{ showTooltip: true }}
+                            >
                                 {passkey.displayName || passkey.id}
                             </Title>
                         </Space>
                         <Text type='tertiary'>
-                            添加于: {dayjs(passkey.createdAt).format('YYYY年MM月DD日')} |
-                            上次使用: {passkey.lastUsedAt ? dayjs(passkey.lastUsedAt).format('YYYY年MM月DD日') : '-'}
+                            添加于: {getDayjsFormat(passkey.createdAt)} | 上次使用: {getDayjsEasyRead(passkey.lastUsedAt)}
                         </Text>
                     </Space>
                 }
@@ -156,6 +167,7 @@ const PasskeyManager: FC = () => {
                         />
                     </Space>
                 }
+                style={{ marginTop: 12 }}
             />
         );
     };
@@ -214,4 +226,5 @@ const PasskeyManager: FC = () => {
     );
 };
 
-export default PasskeyManager; 
+export default PasskeyManager;
+

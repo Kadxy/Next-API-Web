@@ -1,4 +1,4 @@
-import { ServerAPI } from "../generated";
+import { CancelablePromise, ServerAPI } from "../generated";
 
 // 定义API响应的通用接口
 export interface ApiResponse<T = unknown> {
@@ -16,6 +16,7 @@ export type ExtractResponseData<T> = T extends ApiResponse<infer D> ? D : any;
  * @param response API响应对象
  * @param options 处理选项
  * @returns 成功时返回data字段，失败时返回null
+ * @deprecated 使用`handleResponse`替代
  */
 export const parseResponse = <T, D = ExtractResponseData<T>>(
     response: T,
@@ -33,6 +34,36 @@ export const parseResponse = <T, D = ExtractResponseData<T>>(
     }
 
     options.onError?.(msg || '');
+    return null;
+}
+
+export const handleResponse = async <T, D = ExtractResponseData<T>>(
+    controller: CancelablePromise<T>,
+    options: {
+        onSuccess?: (data: D) => void | Promise<void>,
+        onError?: (msg: string) => void | Promise<void>,
+    }
+) => {
+    const response = await controller;
+    const { success, msg, data = null } = response as unknown as ApiResponse<D>;
+
+    if (success) {
+        if (options.onSuccess) {
+            const result = options.onSuccess(data!);
+            if (result instanceof Promise) {
+                await result;
+            }
+        }
+        return data;
+    }
+
+    if (options.onError) {
+        const result = options.onError(msg || '');
+        if (result instanceof Promise) {
+            await result;
+        }
+    }
+    
     return null;
 }
 

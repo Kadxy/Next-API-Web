@@ -1,9 +1,9 @@
 import { FC } from 'react';
 import { Button, Card, Typography, Modal, Avatar, Space, Row, Col } from '@douyinfe/semi-ui';
 import { useLocation, useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
 import { Path } from '../../lib/constants/paths';
 import { useAuth } from '../../lib/context/hooks';
+import { getDayjsEasyRead, getDayjsFormat } from '../../utils';
 
 const { Title, Text } = Typography;
 
@@ -62,10 +62,10 @@ const ProfileCard: FC = () => {
                     <Space vertical align="end" style={{ width: '100%' }}>
                         <Space vertical align='start'>
                             <Text type="tertiary" size="small">
-                                注册时间: {dayjs(user.createdAt).format('YYYY年MM月DD日')}
+                                注册时间: {getDayjsFormat(user.createdAt, 'YYYY年MM月DD日')}
                             </Text>
                             <Text type="tertiary" size="small">
-                                上次登录: {user.lastLoginAt ? dayjs(user.lastLoginAt).format('YYYY年MM月DD日 HH:mm:ss') : '-'}
+                                上次登录: {getDayjsEasyRead(user.lastLoginAt)}
                             </Text>
                         </Space>
                         <Space>
