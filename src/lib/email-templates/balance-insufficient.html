@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!-- 
+    余额不足/欠费提醒邮件模板
+    参数:
+        productName: 产品名称
+        userName: 用户名称
+        userUid: 用户ID
+        balance: 当前余额（负数）
+        unit: 货币单位
+        minimumBalance: 最低余额要求
+        dueDate: 付款截止日期
+        rechargeUrl: 充值链接
+        logoUrl: logo 链接
+        supportUrl: 客服支持链接
+-->
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{productName}} 账户余额不足提醒</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 40px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #d81e06;
+            letter-spacing: -0.5px;
+        }
+        p {
+            margin: 16px 0;
+            font-size: 16px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .user-info {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .balance-card {
+            background-color: #fff8f8;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #ffdddd;
+            position: relative;
+            overflow: hidden;
+        }
+        .balance-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: #d81e06;
+        }
+        .balance-label {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .balance {
+            font-size: 36px;
+            font-weight: 700;
+            color: #d81e06;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        .due-date {
+            margin-top: 15px;
+            font-weight: 600;
+            color: #d81e06;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background-color: #d81e06;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 16px;
+            margin: 10px 0 20px;
+            box-shadow: 0 2px 5px rgba(216, 30, 6, 0.2);
+            transition: all 0.2s ease;
+        }
+        .button:hover {
+            background-color: #c01c05;
+            box-shadow: 0 4px 8px rgba(216, 30, 6, 0.3);
+        }
+        .warning-box {
+            background-color: #fff8f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #d81e06;
+        }
+        .warning-box h3 {
+            margin-top: 0;
+            color: #d81e06;
+            font-size: 18px;
+        }
+        .warning-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .settings-tip {
+            background-color: #f0f4f8;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #495057;
+        }
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #d81e06;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{{logoUrl}}" alt="{{productName}} Logo" class="logo">
+        
+        <h1>可用额度不足</h1>
+        
+        <div class="user-info">
+            尊敬的 <b>{{userName}}（账户UID: {{userUid}}）</b>，
+        </div>
+        
+        <p>您的 {{productName}} 账户可用额度已不足，请及时登录控制台进行充值。</p>
+        
+        <div class="balance-card">
+            <div class="balance-label">当前账户余额</div>
+            <div class="balance">{{unit}} {{balance}}</div>
+        </div>
+        
+        <div class="warning-box">
+            <h3>温馨提示</h3>
+            <ul>
+                <li>在欠费状态下，部分服务可能受限</li>
+                <li>为了不影响正常使用，请您及时充值</li>
+                <li>您的服务将在欠费金额达到最大欠费额度时暂停</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="{{rechargeUrl}}" class="button">立即充值</a>
+        </div>
+        
+        <div class="settings-tip">
+            <strong>提示：</strong>为避免类似情况，您可以在"个人中心 → 账户设置"中开启自动充值或调整余额提醒阈值。
+        </div>
+        
+        <div class="footer">
+            <p>如果您认为这是系统错误，或需要任何帮助，请<a href="{{supportUrl}}">联系客户支持</a>。</p>
+            <p>本邮件由系统自动发送，请勿直接回复。</p>
+        </div>
+    </div>
+</body>
+</html> 

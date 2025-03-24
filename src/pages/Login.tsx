@@ -42,6 +42,16 @@ const Login: FC = () => {
     // 处理过的 OAuth 回调验证码
     const processedCode = useRef<string | null>(null);
 
+    // 创建一个 BroadcastChannel 用于在登录成功之后通知其他页面
+    const authChannel = new BroadcastChannel('auth_channel');
+
+    // 监听登录成功事件
+    authChannel.onmessage = (event) => {
+        if (event.data.type === 'login_success') {
+            navigate(from, { replace: true });
+        }
+    };
+
     const api = getServerApi();
 
     useEffect(() => {
@@ -49,20 +59,33 @@ const Login: FC = () => {
             // 如果正在处理，不处理
             if (Object.values(processing).some(Boolean)) return;
 
+            const isEmailCallback = searchParams.get('email_verification_callback') === '1';
             const isGithubCallback = searchParams.get('github_callback') === '1';
             const isGoogleCallback = searchParams.get('google_callback') === '1';
 
-            // 如果既不是 Github 也不是 Google 回调，不处理
-            if (!isGithubCallback && !isGoogleCallback) return;
+            // 如果不是任何一种回调，不处理
+            if (!isGithubCallback && !isGoogleCallback && !isEmailCallback) return;
 
+            const email = searchParams.get('email');
             const code = searchParams.get('code');
             const state = searchParams.get('state');
 
-            // 如果没有 code 或 state，不处理
-            if (!code || !state) return;
+            // 如果没有 code，不处理（因为任何一种回调都需要 code）
+            if (!code) return;
 
             // 如果已经处理过，不处理
             if (processedCode.current === code) return;
+
+            // === 处理邮箱验证码 ===
+            if (email && isEmailCallback) {
+                processedCode.current = code;
+                handleVerifyCodeLogin({ email, code });
+            }
+
+            // === 处理 OAuth 回调 ===
+
+            // 如果没有 state，不处理
+            if (!state) return;
 
             // 处理 Github 或 Google 回调
             const platform = isGithubCallback ? LoginMethod.Github : LoginMethod.Google;
