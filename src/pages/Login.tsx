@@ -292,7 +292,6 @@ const Login: FC = () => {
                 value={inputs.email}
                 validateStatus={validateStatus}
                 onChange={(value) => setInputs({ ...inputs, email: value })}
-                autoFocus
                 autoComplete="email"
             />
             {inputs.email ? (
@@ -361,7 +360,11 @@ const Login: FC = () => {
                 border: 'none'
             }}>
             <Spin
-                tip="正在登录..."
+                tip={
+                    <div style={{ marginTop: 24 }}>
+                        登录中...
+                    </div>
+                }
                 size="large"
                 spinning={Object.values(processing).some(Boolean)}
             >
