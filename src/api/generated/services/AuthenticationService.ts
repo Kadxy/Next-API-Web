@@ -3,7 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { EmailLoginDto } from '../models/EmailLoginDto';
+import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { SendEmailLoginCodeDto } from '../models/SendEmailLoginCodeDto';
+import type { UserResponseDto } from '../models/UserResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class AuthenticationService {
@@ -27,14 +29,14 @@ export class AuthenticationService {
     }
     /**
      * Login
-     * @returns any
+     * @returns LoginResponseDto
      * @throws ApiError
      */
     public authControllerLogin({
         requestBody,
     }: {
         requestBody: EmailLoginDto,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/login/email',
@@ -66,10 +68,10 @@ export class AuthenticationService {
     }
     /**
      * Get Current User
-     * @returns any
+     * @returns UserResponseDto
      * @throws ApiError
      */
-    public authControllerAccount(): CancelablePromise<any> {
+    public authControllerAccount(): CancelablePromise<UserResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/auth/self',

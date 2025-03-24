@@ -3,20 +3,21 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { GitHubAuthDto } from '../models/GitHubAuthDto';
+import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class GitHubAuthenticationService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * GitHub OAuth Login
-     * @returns any
+     * @returns LoginResponseDto
      * @throws ApiError
      */
     public gitHubAuthControllerGithubLogin({
         requestBody,
     }: {
         requestBody: GitHubAuthDto,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/github/login',

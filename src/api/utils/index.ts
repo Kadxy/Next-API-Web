@@ -20,15 +20,15 @@ export type ExtractResponseData<T> = T extends ApiResponse<infer D> ? D : any;
 export const parseResponse = <T, D = ExtractResponseData<T>>(
     response: T,
     options: {
-        onSuccess?: (data: D | null) => void,
+        onSuccess?: (data: D) => void,
         onError?: (msg: string) => void,
     }
 ) => {
     // 将响应转换为ApiResponse类型
-    const { success, msg, data } = response as unknown as ApiResponse<D>;
+    const { success, msg, data=null } = response as unknown as ApiResponse<D>;
 
     if (success) {
-        options.onSuccess?.(data || null);
+        options.onSuccess?.(data!);
         return data;
     }
 

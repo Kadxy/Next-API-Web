@@ -15,9 +15,13 @@ export type { GitHubAuthDto } from './models/GitHubAuthDto';
 export type { GoogleAuthDto } from './models/GoogleAuthDto';
 export type { ListPasskeysResponseData } from './models/ListPasskeysResponseData';
 export type { ListPasskeysResponseDto } from './models/ListPasskeysResponseDto';
+export type { LoginResponseData } from './models/LoginResponseData';
+export type { LoginResponseDto } from './models/LoginResponseDto';
 export type { Object } from './models/Object';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 export type { UpdatePasskeyDisplayNameRequestDto } from './models/UpdatePasskeyDisplayNameRequestDto';
+export type { UserResponseData } from './models/UserResponseData';
+export type { UserResponseDto } from './models/UserResponseDto';
 
 export { AuthenticationService } from './services/AuthenticationService';
 export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';

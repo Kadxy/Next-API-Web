@@ -7,8 +7,8 @@ import { Path } from '../lib/constants/paths';
 import { getServerApi, parseResponse } from '../api/utils';
 // @ts-expect-error handle svg file
 import GoogleIcon from '@/assets/icons/google.svg?react';
-import { ContextUser } from '../lib/context/AuthContext';
 import { startAuthentication } from '@simplewebauthn/browser';
+import { UserResponseData } from '../api/generated';
 
 const ButtonStyle = {
     height: '42px',
@@ -40,20 +40,32 @@ const BrandColors = {
     }
 };
 
+enum LoginMethod {
+    Email,
+    Github,
+    Google,
+    Passkey
+};
+
 const Login: FC = () => {
     const { user, setUser, token, setToken, isLoading: isAuthLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const from = location.state?.from?.pathname || Path.ROOT;
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [sendingVerifyCode, setSendingVerifyCode] = useState(false);
     const [inputs, setInputs] = useState({ email: '', code: '' });
     const [showVerifyCode, setShowVerifyCode] = useState(false);
     const [countdown, setCountdown] = useState(0);
-    const [isPasskeyAuthenticating, setIsPasskeyAuthenticating] = useState(false);
-    const [isOAuthCallbackProcessing, setIsOAuthCallbackProcessing] = useState(false);
+
+    // 登录准备状态（禁用按钮）
+    const [preparing, setPreparing] = useState<Record<LoginMethod, boolean>>({ [LoginMethod.Email]: false, [LoginMethod.Github]: false, [LoginMethod.Google]: false, [LoginMethod.Passkey]: false });
+
+    // 登录处理状态（Card 的 loading 状态）
+    const [processing, setProcessing] = useState<Record<LoginMethod, boolean>>({ [LoginMethod.Email]: false, [LoginMethod.Github]: false, [LoginMethod.Google]: false, [LoginMethod.Passkey]: false });
+
+    // 处理过的 OAuth 回调验证码
     const processedCode = useRef<string | null>(null);
+
     const api = getServerApi();
 
     useEffect(() => {
@@ -65,28 +77,35 @@ const Login: FC = () => {
 
     useEffect(() => {
         const handleCallback = async () => {
-            if (isOAuthCallbackProcessing) return;
+            // 如果正在处理，不处理
+            if (Object.values(processing).some(Boolean)) return;
 
             const isGithubCallback = searchParams.get('github_callback') === '1';
             const isGoogleCallback = searchParams.get('google_callback') === '1';
+
+            // 如果既不是 Github 也不是 Google 回调，不处理
+            if (!isGithubCallback && !isGoogleCallback) return;
+
             const code = searchParams.get('code');
             const state = searchParams.get('state');
 
+            // 如果没有 code 或 state，不处理
             if (!code || !state) return;
-            if (processedCode.current === code) return;
-            if (!isGithubCallback && !isGoogleCallback) return;
 
-            try {
-                setIsOAuthCallbackProcessing(true);
-                setSearchParams({});
-                processedCode.current = code;
-                const platform = isGithubCallback ? 'github' : 'google';
-                await handleOauthCallback(platform, code, state);
-            } catch (error) {
-                console.error('登录失败', error);
-            } finally {
-                setIsOAuthCallbackProcessing(false);
-            }
+            // 如果已经处理过，不处理
+            if (processedCode.current === code) return;
+
+            // 处理 Github 或 Google 回调
+            const platform = isGithubCallback ? LoginMethod.Github : LoginMethod.Google;
+
+            // 清空搜索参数
+            setSearchParams({});
+
+            // 记录处理过的 code，防止重复处理
+            processedCode.current = code;
+
+            // 处理回调
+            await handleOauthCallback(platform, code, state);
         };
 
         handleCallback();
@@ -107,8 +126,8 @@ const Login: FC = () => {
             return;
         }
 
-        setSendingVerifyCode(true);
         try {
+            setPreparing({ ...preparing, [LoginMethod.Email]: true });
             parseResponse(await api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
                     setShowVerifyCode(true);
@@ -121,67 +140,74 @@ const Login: FC = () => {
             Toast.error({ content: '发送验证码失败' });
             console.error('Send verify code error:', error);
         } finally {
-            setSendingVerifyCode(false);
+            setPreparing({ ...preparing, [LoginMethod.Email]: false });
         }
     };
 
     // 通用 OAuth 登录前处理
-    const handleOauthLoginClick = async (platform: 'github' | 'google') => {
-        switch (platform) {
-            case 'github':
-                parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
-                    onSuccess: (data) => window.location.href = data.oauthUrl,
-                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-                });
-                break;
-            case 'google':
-                parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
-                    onSuccess: (data) => window.location.href = data.oauthUrl,
-                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-                });
-                break;
-            default:
-                Toast.error({ content: '无效的登录方式' });
+    const handleOauthLoginClick = async (platform: LoginMethod.Github | LoginMethod.Google) => {
+        setPreparing({ ...preparing, [platform]: true });
+        try {
+            switch (platform) {
+                case LoginMethod.Github:
+                    parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
+                        onSuccess: (data) => window.location.href = data.oauthUrl,
+                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                    });
+                    break;
+                case LoginMethod.Google:
+                    parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
+                        onSuccess: (data) => window.location.href = data.oauthUrl,
+                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                    });
+                    break;
+                default:
+                    Toast.error({ content: '无效的登录方式' });
+            }
+        } catch (error) {
+            Toast.error({ content: '登录失败: ' + (error instanceof Error ? error.message : '未知错误') });
+            console.error('Login error:', error);
+            // 只在错误时重置状态，因为如果成功，就重定向走了，不需要重置
+            // 如果在 finally 中重置，会导致还没有重定向完成就解除 loading 状态
+            setPreparing({ ...preparing, [platform]: false });
         }
     };
 
     // Passkey 登录
     const handlePasskeyLogin = async () => {
+        setPreparing({ ...preparing, [LoginMethod.Passkey]: true });
+        const passkeyApi = getServerApi().passkeyAuthentication;
         try {
-            setIsPasskeyAuthenticating(true);
-
             // 1. 从服务器获取认证选项
-            parseResponse(await api.passkeyAuthentication.passkeyControllerGenerateAuthenticationOptions(), {
-                onSuccess: async (data) => {
-                    const { options, state } = data;
+            const optionsResponse = await passkeyApi.passkeyControllerGenerateAuthenticationOptions();
+            const { success: optionsSuccess, data: optionsData, msg: optionsMsg } = optionsResponse;
+            if (!optionsSuccess) {
+                throw new Error(optionsMsg);
+            }
+            const { options: optionsJSON, state } = optionsData;
 
-                    try {
-                        // 2. 启动认证流程，让用户选择他们的 passkey
-                        const authenticationResponse = await startAuthentication({
-                            optionsJSON: options
-                        });
+            // 2. 启动认证流程，让用户选择他们的 passkey
+            const authResponse = await startAuthentication({ optionsJSON });
 
-                        // 3. 将认证响应发送到服务器进行验证
-                        parseResponse(await api.passkeyAuthentication.passkeyControllerVerifyAuthenticationResponse({
-                            state,
-                            requestBody: authenticationResponse
-                        }), {
-                            onSuccess: (data) => handleLoginResponse(data),
-                            onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-                        });
-                    } catch (error) {
-                        console.error('Passkey 认证错误:', error);
-                        const errorMessage = error instanceof Error ? error.message : '认证失败';
-                        Toast.error({ content: `Passkey 认证失败：${errorMessage}` });
-                    }
-                },
-                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-            });
+            // 3. 将认证响应发送到服务器进行验证
+            setPreparing({ ...preparing, [LoginMethod.Passkey]: false });
+            setProcessing({ ...processing, [LoginMethod.Passkey]: true });
+            const response = await passkeyApi.passkeyControllerVerifyAuthenticationResponse({ state, requestBody: authResponse });
+
+            // 4. 处理服务器响应
+            const { success: responseSuccess, data: responseData, msg: responseMsg } = response;
+            if (!responseSuccess) {
+                throw new Error(responseMsg);
+            } else {
+                setProcessing({ ...processing, [LoginMethod.Passkey]: false });
+                handleLoginResponse(responseData);
+            }
         } catch (error) {
-            console.error('Passkey 登录错误:', error);
-            Toast.error({ content: '无法启动 Passkey 登录' });
+            Toast.error({ content: '认证失败: ' + (error instanceof Error ? error.message : '未知错误') });
         } finally {
-            setIsPasskeyAuthenticating(false);
+            // 无论是否成功，都要重置状态
+            setPreparing({ ...preparing, [LoginMethod.Passkey]: false });
+            setProcessing({ ...processing, [LoginMethod.Passkey]: false });
         }
     };
 
@@ -189,7 +215,7 @@ const Login: FC = () => {
 
     // 验证邮箱验证码
     const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
-        setIsSubmitting(true);
+        setProcessing({ ...processing, [LoginMethod.Email]: true });
         try {
             parseResponse(await api.authentication.authControllerLogin({ requestBody: values }), {
                 onSuccess: (data) => handleLoginResponse(data),
@@ -201,32 +227,39 @@ const Login: FC = () => {
         } catch (error) {
             console.error('Login error:', error);
         } finally {
-            setIsSubmitting(false);
+            setProcessing({ ...processing, [LoginMethod.Email]: false });
         }
     };
 
     // 通用 OAuth 登录回调
-    const handleOauthCallback = async (platform: 'github' | 'google', code: string, state: string) => {
-        switch (platform) {
-            case 'github':
-                parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
-                    onSuccess: (data) => handleLoginResponse(data),
-                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-                });
-                break;
-            case 'google':
-                parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
-                    onSuccess: (data) => handleLoginResponse(data),
-                    onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
-                });
-                break;
+    const handleOauthCallback = async (platform: LoginMethod.Github | LoginMethod.Google, code: string, state: string) => {
+        try {
+            setProcessing({ ...processing, [platform]: true });
+            switch (platform) {
+                case LoginMethod.Github:
+                    parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
+                        onSuccess: (data) => handleLoginResponse(data),
+                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                    });
+                    break;
+                case LoginMethod.Google:
+                    parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
+                        onSuccess: (data) => handleLoginResponse(data),
+                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                    });
+                    break;
+            }
+        } catch (error) {
+            Toast.error({ content: '登录失败: ' + (error instanceof Error ? error.message : '未知错误') });
+        } finally {
+            setProcessing({ ...processing, [platform]: false });
         }
     };
 
     /* ------------------------------ auth step3 ------------------------------ */
 
     // 通用登录处理
-    const handleLoginResponse = (data: { user: ContextUser, token: string }) => {
+    const handleLoginResponse = (data: { user: UserResponseData, token: string }) => {
         const { user, token } = data;
         setUser(user);
         setToken(token);
@@ -282,7 +315,7 @@ const Login: FC = () => {
                     type="tertiary"
                     disabled={countdown > 0}
                     onClick={sendVerifyCode}
-                    loading={sendingVerifyCode}
+                    loading={processing[LoginMethod.Email]}
                     style={{ fontSize: '13px' }}
                 >
                     {countdown > 0 ? `重新发送 (${countdown}s)` : '重新发送验证码'}
@@ -293,7 +326,7 @@ const Login: FC = () => {
                 block
                 theme="solid"
                 type="primary"
-                loading={isSubmitting}
+                loading={processing[LoginMethod.Email]}
                 onClick={() => handleVerifyCodeLogin({ email: inputs.email, code: inputs.code })}
                 style={{
                     ...ButtonStyle,
@@ -325,6 +358,7 @@ const Login: FC = () => {
                 autoComplete="username webauthn"
             />
             <Button
+                icon={<IconMail />}
                 size="large"
                 block
                 theme="solid"
@@ -335,9 +369,8 @@ const Login: FC = () => {
                     backgroundColor: BrandColors.email.background,
                 }}
                 onClick={sendVerifyCode}
-                loading={sendingVerifyCode}
-                disabled={isPasskeyAuthenticating || isOAuthCallbackProcessing}
-                icon={<IconMail />}
+                loading={preparing[LoginMethod.Email]}
+                disabled={!preparing[LoginMethod.Email] && Object.values(preparing).some(Boolean)}
             >
                 使用邮箱继续
             </Button>
@@ -350,9 +383,9 @@ const Login: FC = () => {
                     backgroundColor: BrandColors.passkey.background,
                 }}
                 onClick={handlePasskeyLogin}
-                loading={isPasskeyAuthenticating}
-                disabled={sendingVerifyCode || isOAuthCallbackProcessing}
                 icon={<IconLock />}
+                loading={preparing[LoginMethod.Passkey]}
+                disabled={!preparing[LoginMethod.Passkey] && Object.values(preparing).some(Boolean)}
             >
                 使用 Passkey 登录
             </Button>
@@ -369,8 +402,9 @@ const Login: FC = () => {
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}
                 icon={<IconGithubLogo style={{ color: 'white' }} />}
-                onClick={() => handleOauthLoginClick('github')}
-                disabled={isPasskeyAuthenticating || sendingVerifyCode || isOAuthCallbackProcessing}
+                onClick={() => handleOauthLoginClick(LoginMethod.Github)}
+                loading={preparing[LoginMethod.Github]}
+                disabled={!preparing[LoginMethod.Github] && Object.values(preparing).some(Boolean)}
             >
                 GitHub 登录
             </Button>
@@ -384,8 +418,9 @@ const Login: FC = () => {
                     border: `1px solid ${BrandColors.google.border}`,
                 }}
                 icon={<Icon svg={<GoogleIcon />} />}
-                onClick={() => handleOauthLoginClick('google')}
-                disabled={isPasskeyAuthenticating || sendingVerifyCode || isOAuthCallbackProcessing}
+                onClick={() => handleOauthLoginClick(LoginMethod.Google)}
+                loading={preparing[LoginMethod.Google]}
+                disabled={!preparing[LoginMethod.Google] && Object.values(preparing).some(Boolean)}
             >
                 Google 登录
             </Button>
@@ -404,9 +439,9 @@ const Login: FC = () => {
                 border: 'none'
             }}>
             <Spin
-                tip="正在登录中..."
+                tip="正在登录..."
                 size="large"
-                spinning={isPasskeyAuthenticating || isOAuthCallbackProcessing}
+                spinning={Object.values(processing).some(Boolean)}
             >
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                     <Typography.Title heading={3} style={{ margin: 0 }}>

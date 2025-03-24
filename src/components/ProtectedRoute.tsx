@@ -1,7 +1,8 @@
 import { FC, ReactNode } from 'react';
 import { useLocation, Outlet, Navigate } from 'react-router-dom';
 import { Path } from '../lib/constants/paths';
-import { STORE_KEYS } from '../lib/constants/store';
+import { useAuth } from '../lib/context/hooks';
+import { Spin } from '@douyinfe/semi-ui';
 
 interface ProtectedRouteProps {
     children?: ReactNode;
@@ -9,9 +10,23 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
     const location = useLocation();
-    const token = localStorage.getItem(STORE_KEYS.TOKEN);
+    const { isLoading, user, token } = useAuth();
 
-    if (!token) {
+    if (isLoading) {
+        return (
+            <Spin
+                style={{ height: '100%', width: '100%' }}
+                size='large'
+                tip={
+                    <div style={{ marginTop: 24 }}>
+                        加载中...
+                    </div>
+                }
+            />
+        );
+    }
+
+    if (!user || !token) {
         return <Navigate to={Path.LOGIN} state={{ from: location }} replace />;
     }
 

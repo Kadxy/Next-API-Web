@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ListPasskeysResponseDto } from '../models/ListPasskeysResponseDto';
+import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { Object } from '../models/Object';
 import type { UpdatePasskeyDisplayNameRequestDto } from '../models/UpdatePasskeyDisplayNameRequestDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -50,7 +51,7 @@ export class PasskeyAuthenticationService {
     }
     /**
      * Complete Passkey Authentication
-     * @returns any
+     * @returns LoginResponseDto
      * @throws ApiError
      */
     public passkeyControllerVerifyAuthenticationResponse({
@@ -59,7 +60,7 @@ export class PasskeyAuthenticationService {
     }: {
         state: string,
         requestBody: Object,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/passkey/authentication',

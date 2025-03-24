@@ -1,18 +1,13 @@
 import { createContext } from 'react';
-
-export interface ContextUser {
-    uid: string;
-    displayName: string;
-    avatar: string;
-}
+import { UserResponseData } from '../../api/generated';
 
 interface AuthContextType {
     // Loading
     isLoading: boolean;
 
     // User
-    user: ContextUser | null;
-    setUser: (user: ContextUser | null) => void;
+    user: UserResponseData | null;
+    setUser: (user: UserResponseData | null) => void;
 
     // Token
     token: string | null;

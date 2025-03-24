@@ -3,20 +3,21 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { GoogleAuthDto } from '../models/GoogleAuthDto';
+import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class GoogleAuthenticationService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * Google OAuth Login
-     * @returns any
+     * @returns LoginResponseDto
      * @throws ApiError
      */
     public googleAuthControllerGoogleLogin({
         requestBody,
     }: {
         requestBody: GoogleAuthDto,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/auth/google/login',
