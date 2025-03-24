@@ -134,7 +134,7 @@ const Login: FC = () => {
                 onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
             });
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '发送验证码失败') });
+            Toast.error({ content: getErrorMsg(error, '发送验证码失败'), stack: true });
         } finally {
             setPreparing({ ...preparing, [LoginMethod.Email]: false });
         }
@@ -158,10 +158,10 @@ const Login: FC = () => {
                     });
                     break;
                 default:
-                    Toast.error({ content: '无效的登录方式' });
+                    Toast.error({ content: '无效的登录方式', stack: true });
             }
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '登录失败') });
+            Toast.error({ content: getErrorMsg(error, '登录失败'), stack: true });
             // 只在错误时重置状态，因为如果成功，就重定向走了，不需要重置
             // 如果在 finally 中重置，会导致还没有重定向完成就解除 loading 状态
             setPreparing({ ...preparing, [platform]: false });
@@ -198,7 +198,7 @@ const Login: FC = () => {
                 handleLoginResponse(responseData);
             }
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '认证失败') });
+            Toast.error({ content: getErrorMsg(error, '认证失败'), stack: true });
         } finally {
             // 无论是否成功，都要重置状态
             setPreparing({ ...preparing, [LoginMethod.Passkey]: false });
@@ -220,7 +220,7 @@ const Login: FC = () => {
                 }
             });
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '登录失败') });
+            Toast.error({ content: getErrorMsg(error, '登录失败'), stack: true });
         } finally {
             setProcessing({ ...processing, [LoginMethod.Email]: false });
         }
@@ -245,7 +245,7 @@ const Login: FC = () => {
                     break;
             }
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '登录失败') });
+            Toast.error({ content: getErrorMsg(error, '登录失败'), stack: true });
         } finally {
             setProcessing({ ...processing, [platform]: false });
         }
@@ -259,7 +259,7 @@ const Login: FC = () => {
         setUser(user);
         setToken(token);
         navigate(from, { replace: true });
-        Toast.success({ content: '登录成功' });
+        Toast.success({ content: '登录成功', stack: true });
     };
 
     /* ------------------------------ handle events ------------------------------ */

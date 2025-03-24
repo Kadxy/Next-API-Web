@@ -176,7 +176,8 @@ const PasskeyManager: FC = () => {
         <Card
             title="通行密钥"
             style={{ width: '100%' }}
-            loading={isLoading}
+            // 防止模态框打开时因fetchUserPasskeys触发loading状态导致不必要渲染和模态框提前关闭问题
+            loading={isLoading && !editingPasskeyId}
             headerExtraContent={
                 <Button
                     // 鼓励用户添加，所以使用 secondary 而非 tertiary
