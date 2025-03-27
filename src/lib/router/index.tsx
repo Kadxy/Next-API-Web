@@ -3,6 +3,7 @@ import Home from '../../pages/Home';
 import Settings from '../../pages/Settings';
 import Login from '../../pages/Login';
 import Account from '../../pages/Account/index';
+import ApiKeys from '../../pages/ApiKeys';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
                     {
                         path: Path.SETTINGS,
                         element: <Settings />,
+                    },
+                    {
+                        path: Path.API_KEYS,
+                        element: <ApiKeys />,
                     },
                 ],
             },
