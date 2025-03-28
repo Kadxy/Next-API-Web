@@ -208,7 +208,7 @@ const ApiKeys: FC = () => {
     const [editModalCurrentName, setEditModalCurrentName] = useState<string>('');
 
     // 筛选
-    const [filteredValue, setFilteredValue] = useState<string[]>([]);
+    const [displayNameFilteredValue, setDisplayNameFilteredValue] = useState<string[]>([]);
     const compositionRef = useRef({ isComposition: false });
 
     // 获取API服务
@@ -267,22 +267,20 @@ const ApiKeys: FC = () => {
                     <span style={{ whiteSpace: 'nowrap' }}>名称</span>
                     <Input
                         placeholder="请输入筛选值"
-                        style={{ width: 150 }}
-                        onCompositionStart={() => {
-                            compositionRef.current.isComposition = true;
-                        }}
+                        style={{ width: 136 }}
+                        onCompositionStart={() => compositionRef.current.isComposition = true}
                         onCompositionEnd={(event) => {
                             compositionRef.current.isComposition = false;
                             const value = event.currentTarget.value;
                             const newFilteredValue = value ? [value] : [];
-                            setFilteredValue(newFilteredValue);
+                            setDisplayNameFilteredValue(newFilteredValue);
                         }}
                         onChange={(value) => {
                             if (compositionRef.current.isComposition) {
                                 return;
                             }
                             const newFilteredValue = value ? [value] : [];
-                            setFilteredValue(newFilteredValue);
+                            setDisplayNameFilteredValue(newFilteredValue);
                         }}
                         showClear
                     />
@@ -291,7 +289,7 @@ const ApiKeys: FC = () => {
             dataIndex: 'displayName',
             key: 'displayName',
             onFilter: (value, record) => record?.displayName.includes(value) || false,
-            filteredValue,
+            filteredValue: displayNameFilteredValue,
             width: "30%",
             ellipsis: true,
         },
@@ -377,8 +375,8 @@ const ApiKeys: FC = () => {
                 empty={!loading && (
                     <div style={{ padding: "32px 0" }}>
                         <Typography.Text type='tertiary'>
-                            {filteredValue.length > 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
-                            {filteredValue.length === 0 && (
+                            {displayNameFilteredValue.length > 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
+                            {displayNameFilteredValue.length === 0 && (
                                 <Typography.Text
                                     link
                                     onClick={() => setShowCreateModal(true)}
