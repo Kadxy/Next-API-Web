@@ -264,10 +264,10 @@ const ApiKeys: FC = () => {
         {
             title: (
                 <Space>
-                    <span>名称</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>名称</span>
                     <Input
                         placeholder="请输入筛选值"
-                        style={{ width: 200 }}
+                        style={{ width: 150 }}
                         onCompositionStart={() => {
                             compositionRef.current.isComposition = true;
                         }}
@@ -292,29 +292,34 @@ const ApiKeys: FC = () => {
             key: 'displayName',
             onFilter: (value, record) => record?.displayName.includes(value) || false,
             filteredValue,
+            width: "30%",
+            ellipsis: true,
         },
         {
             title: 'Key',
             dataIndex: 'preview',
             key: 'preview',
             render: (text: string) => {
-                const rawKeyPreview = `sk-${text.slice(0, 4)}******${text.slice(-4)}`;
+                const rawKeyPreview = `sk-${text.slice(0, 4)}*****${text.slice(-4)}`;
                 return <Typography.Text style={{ fontFamily: 'monospace' }}>{rawKeyPreview}</Typography.Text>
             },
+            width: "20%",
         },
         {
-            title: '创建时间',
+            title: '创建日期',
             dataIndex: 'createdAt',
             key: 'createdAt',
             sorter: (a, b) => dayjs(a?.createdAt ?? 0).diff(dayjs(b?.createdAt ?? 0)),
-            render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+            render: (text: string) => dayjs(text).format('YYYY-MM-DD'),
+            width: "15%",
         },
         {
-            title: '最后使用时间',
+            title: '上次使用',
             dataIndex: 'lastUsedAt',
             key: 'lastUsedAt',
             sorter: (a, b) => dayjs(a?.lastUsedAt ?? 0).diff(dayjs(b?.lastUsedAt ?? 0)),
-            render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '从未使用',
+            render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-',
+            width: "25%",
         },
         {
             title: '操作',
@@ -341,6 +346,7 @@ const ApiKeys: FC = () => {
                     />
                 </Space>
             ),
+            width: "10%",
         },
     ];
 
