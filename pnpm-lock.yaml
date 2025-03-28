@@ -11,6 +11,9 @@ importers:
       '@douyinfe/semi-icons':
         specifier: ^2.76.1
         version: 2.76.1(react@18.3.1)
+      '@douyinfe/semi-icons-lab':
+        specifier: ^2.77.1
+        version: 2.77.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@douyinfe/semi-illustrations':
         specifier: ^2.76.1
         version: 2.76.1(react@18.3.1)
@@ -650,6 +653,12 @@ packages:
 
   '@douyinfe/semi-foundation@2.76.1':
     resolution: {integrity: sha512-u9KGP6p5N/KCa6EHZolSZ2OVpKAjdDJ0tV9HcW4DGYb/rHaq2rFQlITO47mbKx24dsflOuwjyTCsyYlFXYTwqw==}
+
+  '@douyinfe/semi-icons-lab@2.77.1':
+    resolution: {integrity: sha512-jYpOoB7NR4QOpxmq/iwiVUKZMqEZKi3aTSWhH7DVw++iI4cysvxprLapsCTr2xKAWzPhFL20VSoJBMFN1inKaA==}
+    peerDependencies:
+      react: '>=16.0.0'
+      react-dom: '>=16.0.0'
 
   '@douyinfe/semi-icons@2.76.1':
     resolution: {integrity: sha512-3eK4fdIjwhA4w8ez7FOkI+FCTNwd3qMKqIHvlngtR7/NboMkwDugDimejJoABChLB3ZgosmnF/FjYnq/n8dSPw==}
@@ -3481,6 +3490,11 @@ snapshots:
     transitivePeerDependencies:
       - acorn
       - supports-color
+
+  '@douyinfe/semi-icons-lab@2.77.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@douyinfe/semi-icons@2.76.1(react@18.3.1)':
     dependencies:

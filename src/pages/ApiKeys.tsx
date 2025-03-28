@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import {
     Card,
     Typography,
@@ -96,7 +96,10 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                     cancelButtonProps: {
                         theme: 'borderless'
                     },
-                    width: 500
+                    width: 500,
+                    maskClosable: false,
+                    closeOnEsc: false,
+                    closable: false,
                 } :
                 {
                     footer: false,
@@ -204,6 +207,10 @@ const ApiKeys: FC = () => {
     const [editModalHashKey, setEditModalHashKey] = useState<string>('');
     const [editModalCurrentName, setEditModalCurrentName] = useState<string>('');
 
+    // 筛选
+    const [filteredValue, setFilteredValue] = useState<string[]>([]);
+    const compositionRef = useRef({ isComposition: false });
+
     // 获取API服务
     const api = getServerApi();
 
@@ -255,9 +262,36 @@ const ApiKeys: FC = () => {
     // 表格列配置
     const columns: ColumnProps<ListApiKeyResponseItemData>[] = [
         {
-            title: '名称',
+            title: (
+                <Space>
+                    <span>名称</span>
+                    <Input
+                        placeholder="请输入筛选值"
+                        style={{ width: 200 }}
+                        onCompositionStart={() => {
+                            compositionRef.current.isComposition = true;
+                        }}
+                        onCompositionEnd={(event) => {
+                            compositionRef.current.isComposition = false;
+                            const value = event.currentTarget.value;
+                            const newFilteredValue = value ? [value] : [];
+                            setFilteredValue(newFilteredValue);
+                        }}
+                        onChange={(value) => {
+                            if (compositionRef.current.isComposition) {
+                                return;
+                            }
+                            const newFilteredValue = value ? [value] : [];
+                            setFilteredValue(newFilteredValue);
+                        }}
+                        showClear
+                    />
+                </Space>
+            ),
             dataIndex: 'displayName',
             key: 'displayName',
+            onFilter: (value, record) => record?.displayName.includes(value) || false,
+            filteredValue,
         },
         {
             title: 'Key',
@@ -296,12 +330,14 @@ const ApiKeys: FC = () => {
                             setEditModalCurrentName(record.displayName);
                             setShowEditModal(true);
                         }}
+                        aria-label='编辑 API key'
                     />
                     <Button
                         icon={<IconDelete />}
                         type="danger"
                         theme="borderless"
                         onClick={() => handleDeleteApiKey(record.hashKey)}
+                        aria-label='删除 API key'
                     />
                 </Space>
             ),
@@ -334,17 +370,19 @@ const ApiKeys: FC = () => {
                 loading={loading}
                 empty={!loading && (
                     <div style={{ padding: "32px 0" }}>
-                        <Typography.Text>
-                            暂无 API key，你可以
-                            <Typography.Text
-                                link
-                                onClick={() => setShowCreateModal(true)}
-                            >
-                                创建一个
-                            </Typography.Text>
+                        <Typography.Text type='tertiary'>
+                            {filteredValue.length > 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
+                            {filteredValue.length === 0 && (
+                                <Typography.Text
+                                    link
+                                    onClick={() => setShowCreateModal(true)}
+                                    type='tertiary'
+                                >
+                                    创建一个
+                                </Typography.Text>
+                            )}
                         </Typography.Text>
-                    </div>
-                )}
+                    </div>)}
             />
             <CreateApiKeyModal
                 visible={showCreateModal}

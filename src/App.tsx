@@ -44,17 +44,18 @@ const App = () => {
                         selectedKeys={[currentPath]}
                         style={{ height: '100%' }}
                         items={[
-                            { itemKey: Path.ROOT, text: '首页', icon: <IconHome size="large" /> },
-                            { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey size="large" /> },
-                            { itemKey: Path.ACCOUNT, text: '账户', icon: <IconUser size="large" /> },
-                            { itemKey: Path.SETTINGS, text: '设置', icon: <IconSetting size="large" /> },
+                            { itemKey: Path.ROOT, text: '首页', icon: <IconHome /> },
+                            { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey /> },
+                            { itemKey: Path.ACCOUNT, text: '账户', icon: <IconUser /> },
+                            { itemKey: Path.SETTINGS, text: '设置', icon: <IconSetting /> },
                         ]}
                         onSelect={(data) => navigate(data.itemKey as PathKey)}
                         header={<Header />}
+                        footer={{ collapseButton: true }}
                     />
                 </Layout.Sider>
             )}
-            <Layout style={{ padding: 30, height: '100%', overflow: 'auto' }}>
+            <Layout style={{ padding: 32, height: '100%', overflow: 'auto' }}>
                 <Outlet />
             </Layout>
         </Layout>
