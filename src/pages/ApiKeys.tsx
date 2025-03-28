@@ -266,8 +266,8 @@ const ApiKeys: FC = () => {
                 <Space>
                     <span style={{ whiteSpace: 'nowrap' }}>名称</span>
                     <Input
-                        placeholder="请输入筛选值"
-                        style={{ width: 136 }}
+                        placeholder="输入筛选值"
+                        style={{ width: 126 }}
                         onCompositionStart={() => compositionRef.current.isComposition = true}
                         onCompositionEnd={(event) => {
                             compositionRef.current.isComposition = false;
@@ -290,7 +290,7 @@ const ApiKeys: FC = () => {
             key: 'displayName',
             onFilter: (value, record) => record?.displayName.includes(value) || false,
             filteredValue: displayNameFilteredValue,
-            width: "30%",
+            width: "25%",
             ellipsis: true,
         },
         {
@@ -344,7 +344,7 @@ const ApiKeys: FC = () => {
                     />
                 </Space>
             ),
-            width: "10%",
+            width: "15%",
         },
     ];
 
