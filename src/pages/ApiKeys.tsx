@@ -272,14 +272,14 @@ const ApiKeys: FC = () => {
             title: '创建时间',
             dataIndex: 'createdAt',
             key: 'createdAt',
-            sorter: (a, b) => dayjs(a?.createdAt ?? '').diff(dayjs(b?.createdAt ?? '')),
+            sorter: (a, b) => dayjs(a?.createdAt ?? 0).diff(dayjs(b?.createdAt ?? 0)),
             render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
         },
         {
             title: '最后使用时间',
             dataIndex: 'lastUsedAt',
             key: 'lastUsedAt',
-            sorter: (a, b) => dayjs(a?.lastUsedAt ?? '').diff(dayjs(b?.lastUsedAt ?? '')),
+            sorter: (a, b) => dayjs(a?.lastUsedAt ?? 0).diff(dayjs(b?.lastUsedAt ?? 0)),
             render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '从未使用',
         },
         {
@@ -331,7 +331,6 @@ const ApiKeys: FC = () => {
             <Table
                 columns={columns}
                 dataSource={apiKeys}
-                pagination={false}
                 loading={loading}
                 empty={!loading && (
                     <div style={{ padding: "32px 0" }}>
