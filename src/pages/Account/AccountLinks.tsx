@@ -53,8 +53,6 @@ const AccountLinks: FC = () => {
                 }
                 extra={
                     <Button
-                        // 鼓励用户绑定，所以使用 secondary 而非 tertiary
-                        type={item.bound ? 'danger' : 'secondary'}
                         icon={item.bound ? <IconUnlink /> : <IconLink />}
                         onClick={() => handleBindAccount(item.id)}
                         loading={isLoading[item.id]}

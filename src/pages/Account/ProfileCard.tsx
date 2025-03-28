@@ -13,7 +13,7 @@ const ProfileCard: FC = () => {
     const location = useLocation();
 
     const handleLogout = async (isLogoutAll = false) => {
-        Modal.warning({
+        Modal.error({
             centered: true,
             title: `确定要${isLogoutAll ? '从所有设备' : ''}登出吗?`,
             content: `您在${isLogoutAll ? '所有已登录设备' : '当前设备'}上的登录将被登出，下次登录时需要重新登录`,
@@ -21,6 +21,7 @@ const ProfileCard: FC = () => {
                 await logout(isLogoutAll);
                 navigate(Path.LOGIN, { state: { from: location } });
             },
+            cancelButtonProps: { theme: 'borderless' }
         });
     };
 

@@ -9,7 +9,7 @@ import {
     Toast,
     Input,
 } from '@douyinfe/semi-ui';
-import { IconPlus, IconEdit, IconDelete } from '@douyinfe/semi-icons';
+import { IconEdit, IconDelete } from '@douyinfe/semi-icons';
 import { ListApiKeyResponseItemData } from '../api/generated';
 import { getServerApi } from '../api/utils';
 import dayjs from 'dayjs';
@@ -360,7 +360,6 @@ const ApiKeys: FC = () => {
             bordered={false}
             headerExtraContent={
                 <Button
-                    icon={<IconPlus />}
                     onClick={() => setShowCreateModal(true)}
                     style={{ margin: '-10px 0' }}
                 >

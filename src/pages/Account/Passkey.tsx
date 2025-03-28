@@ -69,7 +69,7 @@ const PasskeyManager: FC = () => {
 
     // 删除通行密钥
     const handleDeletePasskey = async (id: string) => {
-        Modal.confirm({
+        Modal.error({
             title: '确定要删除这个通行密钥吗?',
             content: '删除后将无法使用此通行密钥登录',
             centered: true,
@@ -88,6 +88,7 @@ const PasskeyManager: FC = () => {
                     Toast.error({ content: getErrorMsg(error, '删除失败') });
                 }
             },
+            cancelButtonProps: { theme: 'borderless' }
         });
     };
 
@@ -182,7 +183,6 @@ const PasskeyManager: FC = () => {
             headerExtraContent={
                 <Button
                     // 鼓励用户添加，所以使用 secondary 而非 tertiary
-                    type="secondary"
                     loading={isRegistering}
                     onClick={handleRegisterPasskey}
                     style={{ margin: '-10px 0' }}
@@ -217,6 +217,7 @@ const PasskeyManager: FC = () => {
                 onOk={() => handleUpdatePasskeyDisplayName(editingPasskeyId!, newDisplayName)}
                 onCancel={() => setEditingPasskeyId(null)}
                 centered
+                cancelButtonProps={{ theme: 'borderless' }}
             >
                 <Input
                     placeholder="请输入新的名称"
