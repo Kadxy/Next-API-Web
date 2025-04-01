@@ -5,8 +5,8 @@
         code: 验证码
         productName: 产品名称
         expiryTime: 失效时间
-        verificationUrl: 验证链接
-        logoUrl: logo 链接
+        verificationPath: 验证链接
+        logoPath: logo 路径
 -->
 <html>
     <head>
@@ -90,7 +90,7 @@
     </head>
     <body>
         <div class="container">
-            <img src="{{logoUrl}}" alt="Logo" class="logo">
+            <img src="https://worldai.app/{{logoPath}}" alt="Logo" class="logo">
             
             <h1>验证您的电子邮箱以继续</h1>
             
@@ -100,7 +100,7 @@
             
             <p>如果您未请求此电子邮件，请直接忽略。出于安全原因，此代码将在 {{expiryTime}} 后失效。</p>
             
-            <a href="https://worldai.app{{verificationUrl}}" class="button">立即验证</a>
+            <a href="https://worldai.app/{{verificationPath}}" class="button">立即验证</a>
             
             <div class="footer">
                 <p>本条消息为系统自动发送，请勿回复。</p>

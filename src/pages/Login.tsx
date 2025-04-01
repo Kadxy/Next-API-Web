@@ -1,5 +1,5 @@
 import { FC, useEffect, useRef, useState } from 'react';
-import { Button, Card, Divider, Input, PinCode, Space, Toast, Typography, Spin } from '@douyinfe/semi-ui';
+import { Button, Card, Divider, Input, PinCode, Space, Toast, Typography, Spin, Modal } from '@douyinfe/semi-ui';
 import Icon, { IconArrowLeft, IconGithubLogo, IconMail, IconSend } from '@douyinfe/semi-icons';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
@@ -23,6 +23,8 @@ enum LoginMethod {
     Passkey
 };
 
+const LOGIN_SUCCESS_KEY = 'login_success';
+
 const Login: FC = () => {
     const { user, setUser, token, setToken, isLoading: isAuthLoading } = useAuth();
     const navigate = useNavigate();
@@ -42,15 +44,24 @@ const Login: FC = () => {
     // 处理过的 OAuth 回调验证码
     const processedCode = useRef<string | null>(null);
 
-    // 创建一个 BroadcastChannel 用于在登录成功之后通知其他页面
-    const authChannel = new BroadcastChannel('auth_channel');
+    // 监听其他标签页的登录事件
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            // 如果已登录或不是登录成功事件，不处理
+            if (token || e.key !== LOGIN_SUCCESS_KEY) return;
 
-    // 监听登录成功事件
-    authChannel.onmessage = (event) => {
-        if (event.data.type === 'login_success') {
-            navigate(from, { replace: true });
-        }
-    };
+            Modal.confirm({
+                title: '登录状态改变',
+                content: '登录状态已改变，即将刷新页面',
+                onOk: () => window.location.reload(),
+                cancelButtonProps: { theme: 'borderless' },
+                centered: true,
+            });
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [navigate, from, token]);
 
     const api = getServerApi();
 
@@ -258,6 +269,10 @@ const Login: FC = () => {
         const { user, token } = data;
         setUser(user);
         setToken(token);
+
+        // 通知其他标签页
+        localStorage.setItem(LOGIN_SUCCESS_KEY, Date.now().toString());
+
         navigate(from, { replace: true });
         Toast.success({ content: '登录成功', stack: true });
     };
