@@ -23,6 +23,13 @@ enum LoginMethod {
     Passkey
 };
 
+const defaultLoadingState = {
+    [LoginMethod.Email]: false,
+    [LoginMethod.Github]: false,
+    [LoginMethod.Google]: false,
+    [LoginMethod.Passkey]: false,
+}
+
 const LOGIN_SUCCESS_KEY = 'login_success';
 
 const Login: FC = () => {
@@ -36,10 +43,10 @@ const Login: FC = () => {
     const [showVerifyCode, setShowVerifyCode] = useState(false);
 
     // 登录准备状态（禁用按钮）
-    const [preparing, setPreparing] = useState<Record<LoginMethod, boolean>>({ [LoginMethod.Email]: false, [LoginMethod.Github]: false, [LoginMethod.Google]: false, [LoginMethod.Passkey]: false });
+    const [preparing, setPreparing] = useState<Record<LoginMethod, boolean>>(defaultLoadingState);
 
     // 登录处理状态（Card 的 loading 状态）
-    const [processing, setProcessing] = useState<Record<LoginMethod, boolean>>({ [LoginMethod.Email]: false, [LoginMethod.Github]: false, [LoginMethod.Google]: false, [LoginMethod.Passkey]: false });
+    const [processing, setProcessing] = useState<Record<LoginMethod, boolean>>(defaultLoadingState);
 
     // 处理过的 OAuth 回调验证码
     const processedCode = useRef<string | null>(null);

@@ -1,6 +1,5 @@
 import { Path } from '../constants/paths';
 import Home from '../../pages/Home';
-import Settings from '../../pages/Settings';
 import Login from '../../pages/Login';
 import Account from '../../pages/Account/index';
 import ApiKeys from '../../pages/ApiKeys';
@@ -32,10 +31,6 @@ export const router = createBrowserRouter([
                     {
                         path: Path.ACCOUNT,
                         element: <Account />,
-                    },
-                    {
-                        path: Path.SETTINGS,
-                        element: <Settings />,
                     },
                     {
                         path: Path.API_KEYS,

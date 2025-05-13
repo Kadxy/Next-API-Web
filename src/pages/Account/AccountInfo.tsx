@@ -7,7 +7,7 @@ import { getDayjsEasyRead, getDayjsFormat } from '../../utils';
 
 const { Title, Text } = Typography;
 
-const ProfileCard: FC = () => {
+const AccountInfo: FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -31,7 +31,7 @@ const ProfileCard: FC = () => {
 
     return (
         <Card
-            title="个人信息"
+            title="账户信息"
             style={{ width: '100%' }}
         >
             <Row gutter={16}>
@@ -90,4 +90,4 @@ const ProfileCard: FC = () => {
     );
 };
 
-export default ProfileCard; 
+export default AccountInfo; 
