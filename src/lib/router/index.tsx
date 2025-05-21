@@ -4,6 +4,7 @@ import Login from '../../pages/Login';
 import Account from '../../pages/Account/index';
 import ApiKeys from '../../pages/ApiKeys';
 import Recharge from '../../pages/Recharge';
+import Access from '../../pages/Access';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
                     {
                         path: Path.RECHARGE,
                         element: <Recharge />,
+                    },
+                    {
+                        path: Path.ACCESS,
+                        element: <Access />,
                     },
                 ],
             },
