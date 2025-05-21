@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useRef, useState, useMemo } from 'react';
 import {
     Card,
     Typography,
@@ -208,11 +208,19 @@ const ApiKeys: FC = () => {
     const [editModalCurrentName, setEditModalCurrentName] = useState<string>('');
 
     // 筛选
-    const [displayNameFilteredValue, setDisplayNameFilteredValue] = useState<string[]>([]);
+    const [searchText, setSearchText] = useState<string>('');
     const compositionRef = useRef({ isComposition: false });
 
     // 获取API服务
     const api = getServerApi();
+
+    // 过滤数据
+    const filteredApiKeys = useMemo(() => {
+        if (!searchText) return apiKeys;
+        return apiKeys.filter(item =>
+            item.displayName && item.displayName.includes(searchText)
+        );
+    }, [apiKeys, searchText]);
 
     // 加载API key列表
     const fetchApiKeys = async () => {
@@ -266,21 +274,19 @@ const ApiKeys: FC = () => {
                 <Space>
                     <span style={{ whiteSpace: 'nowrap' }}>名称</span>
                     <Input
-                        placeholder="输入筛选值"
-                        style={{ width: 126 }}
+                        placeholder="输入名称"
+                        style={{ width: 160 }}
                         onCompositionStart={() => compositionRef.current.isComposition = true}
                         onCompositionEnd={(event) => {
                             compositionRef.current.isComposition = false;
                             const value = event.currentTarget.value;
-                            const newFilteredValue = value ? [value] : [];
-                            setDisplayNameFilteredValue(newFilteredValue);
+                            setSearchText(value);
                         }}
                         onChange={(value) => {
                             if (compositionRef.current.isComposition) {
                                 return;
                             }
-                            const newFilteredValue = value ? [value] : [];
-                            setDisplayNameFilteredValue(newFilteredValue);
+                            setSearchText(value);
                         }}
                         showClear
                     />
@@ -288,9 +294,7 @@ const ApiKeys: FC = () => {
             ),
             dataIndex: 'displayName',
             key: 'displayName',
-            onFilter: (value, record) => record?.displayName.includes(value) || false,
-            filteredValue: displayNameFilteredValue,
-            width: "25%",
+            width: "27.5%",
             ellipsis: true,
         },
         {
@@ -299,7 +303,7 @@ const ApiKeys: FC = () => {
             key: 'preview',
             render: (text: string) => {
                 const rawKeyPreview = `sk-${text.slice(0, 4)}*****${text.slice(-4)}`;
-                return <Typography.Text style={{ fontFamily: 'monospace' }}>{rawKeyPreview}</Typography.Text>
+                return <Typography.Text style={{ letterSpacing: '0.5px' }}>{rawKeyPreview}</Typography.Text>
             },
             width: "20%",
         },
@@ -308,8 +312,8 @@ const ApiKeys: FC = () => {
             dataIndex: 'createdAt',
             key: 'createdAt',
             sorter: (a, b) => dayjs(a?.createdAt ?? 0).diff(dayjs(b?.createdAt ?? 0)),
-            render: (text: string) => dayjs(text).format('YYYY-MM-DD'),
-            width: "15%",
+            render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+            width: "20%",
         },
         {
             title: '上次使用',
@@ -317,7 +321,7 @@ const ApiKeys: FC = () => {
             key: 'lastUsedAt',
             sorter: (a, b) => dayjs(a?.lastUsedAt ?? 0).diff(dayjs(b?.lastUsedAt ?? 0)),
             render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-',
-            width: "25%",
+            width: "20%",
         },
         {
             title: '操作',
@@ -344,7 +348,7 @@ const ApiKeys: FC = () => {
                     />
                 </Space>
             ),
-            width: "15%",
+            width: "12.5%",
         },
     ];
 
@@ -369,13 +373,13 @@ const ApiKeys: FC = () => {
         >
             <Table
                 columns={columns}
-                dataSource={apiKeys}
+                dataSource={filteredApiKeys}
                 loading={loading}
                 empty={!loading && (
                     <div style={{ padding: "32px 0" }}>
                         <Typography.Text type='tertiary'>
-                            {displayNameFilteredValue.length > 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
-                            {displayNameFilteredValue.length === 0 && (
+                            {filteredApiKeys.length === 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
+                            {filteredApiKeys.length === 0 && searchText === '' && (
                                 <Typography.Text
                                     link
                                     onClick={() => setShowCreateModal(true)}

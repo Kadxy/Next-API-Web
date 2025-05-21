@@ -1,5 +1,5 @@
 import { Layout, Nav, Toast } from '@douyinfe/semi-ui';
-import { IconHome, IconKey, IconUser } from '@douyinfe/semi-icons';
+import { IconCode, IconCreditCard, IconHistogram, IconHome, IconKey, IconUser } from '@douyinfe/semi-icons';
 import { NO_SIDEBAR_PATHS, Path } from './lib/constants/paths';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -45,7 +45,10 @@ const App = () => {
                         style={{ height: '100%' }}
                         items={[
                             { itemKey: Path.ROOT, text: '首页', icon: <IconHome /> },
+                            { itemKey: Path.USAGE, text: '用量信息', icon: <IconHistogram /> },
                             { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey /> },
+                            { itemKey: Path.RECHARGE, text: '账户充值', icon: <IconCreditCard /> },
+                            { itemKey: Path.ACCESS, text: '接入文档', icon: <IconCode /> },
                             { itemKey: Path.ACCOUNT, text: '个人中心', icon: <IconUser /> },
                         ]}
                         onSelect={(data) => navigate(data.itemKey as PathKey)}
