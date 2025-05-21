@@ -24,24 +24,29 @@ import jsQR from 'jsqr';
 
 const { Title, Text } = Typography;
 
-// 价格梯度 - 减少档位
+// 折扣梯度 - 减少档位
 const PRICE_TIERS = [
-    { min: 0, rate: 7.65 },
-    { min: 20, rate: 6.85 },
-    { min: 50, rate: 6.25 },
-    { min: 100, rate: 5.80 },
-    { min: 200, rate: 5.50 },
-    { min: 500, rate: 5.20 },
-    { min: 1000, rate: 4.80 },
+    { min: 0, rate: 7.50 },
+    { min: 10, rate: 7.00 },
+    { min: 20, rate: 6.75 },
+    { min: 50, rate: 6.50 },
+    { min: 100, rate: 6.25 },
+    { min: 500, rate: 5.75 },
+    { min: 1000, rate: 5.25 },
+    { min: 2000, rate: 4.75 },
+    { min: 3000, rate: 4.25 },
+    { min: 5000, rate: 4.00 },
 ];
 
 // 充值金额选项
 const amountOptions = [
+    { value: 10, label: '$10' },
     { value: 20, label: '$20' },
     { value: 50, label: '$50' },
     { value: 100, label: '$100' },
-    { value: 200, label: '$200' },
     { value: 500, label: '$500' },
+    { value: 1000, label: '$1000' },
+    { value: 2000, label: '$2000' },
     { value: 'custom', label: '自定义' },
 ];
 
@@ -347,10 +352,10 @@ const Recharge: FC = () => {
     const [activeTab, setActiveTab] = useState<string>(RECHARGE_TABS.NORMAL);
 
     // 充值金额
-    const [selectedAmount, setSelectedAmount] = useState<number | 'custom'>(20);
+    const [selectedAmount, setSelectedAmount] = useState<number | 'custom'>(10);
 
     // 自定义金额
-    const [customAmount, setCustomAmount] = useState<number>(0);
+    const [customAmount, setCustomAmount] = useState<number>(1);
 
     // 支付方式
     const [paymentMethod, setPaymentMethod] = useState<typeof PaymentMethod[keyof typeof PaymentMethod]['key']>(PaymentMethod.WechatPay.key);
@@ -412,13 +417,10 @@ const Recharge: FC = () => {
     };
 
     return (
-        <div style={{ width: '100%', height: '100%' }}>
+        <div style={{ width: '100%', height: '100%', overflowX: 'hidden' }}>
             <Typography.Title heading={2} style={{ marginBottom: 16 }}>
                 充值
             </Typography.Title>
-            <Typography.Paragraph style={{ marginBottom: 24 }}>
-                选择您的充值方式，在线支付、对公汇款或使用兑换码，为您的账户充值额度
-            </Typography.Paragraph>
 
             <Tabs
                 size="large"
@@ -435,7 +437,7 @@ const Recharge: FC = () => {
                     <Space
                         vertical
                         align="start"
-                        style={{ width: '100%', maxWidth: 700 }}
+                        style={{ width: '100%', maxWidth: '100%' }}
                         spacing='loose'
                     >
                         {/* 充值金额 */}
@@ -443,23 +445,42 @@ const Recharge: FC = () => {
                             <Text strong style={{ fontSize: 14, marginBottom: 8 }}>
                                 金额
                             </Text>
-                            <RadioGroup
-                                type='button'
-                                buttonSize='large'
-                                value={selectedAmount}
-                                onChange={(e) => setSelectedAmount(e.target.value)}
-                                style={{ marginBottom: 8 }}
-                            >
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gridTemplateRows: 'repeat(2, 1fr)',
+                                gap: '10px',
+                                width: '100%',
+                                maxWidth: '400px',
+                                marginBottom: '16px'
+                            }}>
                                 {amountOptions.map(option => (
-                                    <Radio
+                                    <div
                                         key={option.value}
-                                        value={option.value}
-                                        style={{ margin: '-1px' }}
+                                        style={{
+                                            border: `1px solid ${selectedAmount === option.value ? '#0052d9' : '#e0e0e0'}`,
+                                            borderRadius: '6px',
+                                            padding: '10px 0',
+                                            cursor: 'pointer',
+                                            backgroundColor: selectedAmount === option.value ? 'rgba(0, 82, 217, 0.05)' : 'white',
+                                            color: selectedAmount === option.value ? '#0052d9' : 'inherit',
+                                            fontWeight: selectedAmount === option.value ? 'bold' : 'normal',
+                                            textAlign: 'center',
+                                            transition: 'all 0.2s',
+                                            fontSize: '15px'
+                                        }}
+                                        onClick={() => {
+                                            if (option.value === 'custom') {
+                                                setSelectedAmount('custom');
+                                            } else {
+                                                setSelectedAmount(option.value as number);
+                                            }
+                                        }}
                                     >
                                         {option.label}
-                                    </Radio>
+                                    </div>
                                 ))}
-                            </RadioGroup>
+                            </div>
                             {selectedAmount === 'custom' && (
                                 <InputNumber
                                     size='large'
@@ -467,9 +488,9 @@ const Recharge: FC = () => {
                                     onChange={(value) => {
                                         if (typeof value !== 'number') {
                                             setCustomAmount(0);
-                                        } else if (value > 2000) {
-                                            Toast.warning('单次充值金额不能超过2000美元');
-                                            setCustomAmount(2000);
+                                        } else if (value > 5000) {
+                                            Toast.warning('单次充值金额不能超过5000美元');
+                                            setCustomAmount(5000);
                                         } else {
                                             setCustomAmount(value);
                                         }
@@ -479,7 +500,7 @@ const Recharge: FC = () => {
                                     validateStatus={customAmount < 0 ? 'error' : undefined}
                                     hideButtons
                                     min={0}
-                                    max={2000}
+                                    max={5000}
                                 />
                             )}
                         </Space>
@@ -489,41 +510,46 @@ const Recharge: FC = () => {
                             <Text strong style={{ fontSize: 14, marginBottom: 8 }}>
                                 支付方式
                             </Text>
-                            <RadioGroup
-                                type='pureCard'
-                                buttonSize='large'
-                                value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                            >
-                                <Radio
-                                    value={PaymentMethod.WechatPay.key}
-                                    style={{
-                                        width: 150,
-                                        borderRadius: 8,
-                                        border: paymentMethod !== PaymentMethod.WechatPay.key ? '1px solid #e0e0e0' : undefined,
-                                        padding: '12px 16px'
-                                    }}
+                            <div style={{ overflowX: 'auto', width: '100%', paddingBottom: 8 }}>
+                                <RadioGroup
+                                    type='pureCard'
+                                    buttonSize='large'
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    style={{ whiteSpace: 'nowrap' }}
                                 >
-                                    <Space align='center' spacing='medium'>
-                                        <WechatPayIcon />
-                                        <Text strong>微信支付</Text>
-                                    </Space>
-                                </Radio>
-                                <Radio
-                                    value={PaymentMethod.Alipay.key}
-                                    style={{
-                                        width: 150,
-                                        borderRadius: 8,
-                                        border: paymentMethod !== PaymentMethod.Alipay.key ? '1px solid #e0e0e0' : undefined,
-                                        padding: '12px 16px'
-                                    }}
-                                >
-                                    <Space align='center' spacing='medium'>
-                                        <AlipayIcon />
-                                        <Text strong>支付宝</Text>
-                                    </Space>
-                                </Radio>
-                            </RadioGroup>
+                                    <Radio
+                                        value={PaymentMethod.WechatPay.key}
+                                        style={{
+                                            width: 150,
+                                            borderRadius: 8,
+                                            border: paymentMethod !== PaymentMethod.WechatPay.key ? '1px solid #e0e0e0' : undefined,
+                                            padding: '12px 16px',
+                                            display: 'inline-block'
+                                        }}
+                                    >
+                                        <Space align='center' spacing='medium'>
+                                            <WechatPayIcon />
+                                            <Text strong>微信支付</Text>
+                                        </Space>
+                                    </Radio>
+                                    <Radio
+                                        value={PaymentMethod.Alipay.key}
+                                        style={{
+                                            width: 150,
+                                            borderRadius: 8,
+                                            border: paymentMethod !== PaymentMethod.Alipay.key ? '1px solid #e0e0e0' : undefined,
+                                            padding: '12px 16px',
+                                            display: 'inline-block',
+                                        }}
+                                    >
+                                        <Space align='center' spacing='medium'>
+                                            <AlipayIcon />
+                                            <Text strong>支付宝</Text>
+                                        </Space>
+                                    </Radio>
+                                </RadioGroup>
+                            </div>
                         </Space>
 
                         {/* 支付信息区域 */}
@@ -535,7 +561,8 @@ const Recharge: FC = () => {
                                 padding: '24px',
                                 background: 'linear-gradient(135deg, #f8fafb 0%, #f0f7ff 100%)',
                                 boxShadow: '0 2px 8px rgba(0, 82, 217, 0.1)',
-                                maxWidth: 360
+                                maxWidth: 'min(100%, 408px)',
+                                boxSizing: 'border-box'
                             }}
                         >
                             <Space vertical style={{ width: '100%' }}>
@@ -586,7 +613,11 @@ const Recharge: FC = () => {
                                 type="primary"
                                 size='large'
                                 theme="solid"
-                                style={{ borderRadius: 8, width: '100%', maxWidth: 360 + 24 * 2 }}
+                                style={{
+                                    borderRadius: 8,
+                                    width: '100%',
+                                    maxWidth: 'min(100%, 408px)'
+                                }}
                                 onClick={handleRecharge}
                                 disabled={usdAmount <= 0}
                             >
