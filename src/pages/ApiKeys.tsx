@@ -378,16 +378,19 @@ const ApiKeys: FC = () => {
                 empty={!loading && (
                     <div style={{ padding: "32px 0" }}>
                         <Typography.Text type='tertiary'>
-                            {filteredApiKeys.length === 0 ? '暂无符合条件的 API key' : '暂无 API key，你可以'}
-                            {filteredApiKeys.length === 0 && searchText === '' && (
-                                <Typography.Text
-                                    link
-                                    onClick={() => setShowCreateModal(true)}
-                                    type='tertiary'
-                                >
-                                    创建一个
-                                </Typography.Text>
-                            )}
+                            {apiKeys.length === 0 ? (
+                                <>
+                                    暂无 API key，你可以
+                                    <Typography.Text
+                                        link
+                                        onClick={() => setShowCreateModal(true)}
+                                        type='tertiary'
+                                        style={{ marginLeft: 1 }}
+                                    >
+                                        创建一个
+                                    </Typography.Text>
+                                </>
+                            ) : '暂无符合条件的 API key'}
                         </Typography.Text>
                     </div>)}
             />
