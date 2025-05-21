@@ -5,6 +5,8 @@ import Account from '../../pages/Account/index';
 import ApiKeys from '../../pages/ApiKeys';
 import Recharge from '../../pages/Recharge';
 import Access from '../../pages/Access';
+import FAQ from '../../pages/FAQ';
+import ModelList from '../../pages/ModelList';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -45,6 +47,14 @@ export const router = createBrowserRouter([
                     {
                         path: Path.ACCESS,
                         element: <Access />,
+                    },
+                    {
+                        path: Path.FAQ,
+                        element: <FAQ />,
+                    },
+                    {
+                        path: Path.MODEL_LIST,
+                        element: <ModelList />,
                     },
                 ],
             },
