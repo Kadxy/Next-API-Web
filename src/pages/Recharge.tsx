@@ -1,4 +1,4 @@
-import { FC, useState, useMemo, useRef } from 'react';
+import { FC, useState, useMemo, useRef, useEffect } from 'react';
 import {
     Typography,
     Radio,
@@ -58,6 +58,290 @@ const RECHARGE_TABS = {
     REDEEM: 'redeem',
 };
 
+// 二维码扫描器组件
+const QrCodeScanner = ({
+    visible,
+    onClose,
+    onScan
+}: {
+    visible: boolean,
+    onClose: () => void,
+    onScan: (code: string) => void
+}) => {
+    const [cameraReady, setCameraReady] = useState(false);
+    const [scanningActive, setScanningActive] = useState(false);
+    const [debugImage, setDebugImage] = useState<string | null>(null);
+    const [scanAttempts, setScanAttempts] = useState(0);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    // 初始化摄像头
+    const initCamera = async () => {
+        try {
+            setScanningActive(true);
+            setScanAttempts(0);
+            setCameraError(null);
+            setDebugImage(null);
+
+            const constraints = {
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.onloadedmetadata = () => {
+                    if (videoRef.current) {
+                        videoRef.current.play()
+                            .then(() => setCameraReady(true))
+                            .catch(err => {
+                                console.error("视频播放失败:", err);
+                                setCameraError("视频播放失败，请尝试重新打开扫描器");
+                            });
+                    }
+                };
+            }
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            Toast.error("无法访问摄像头，请检查权限设置");
+            setCameraError("无法访问摄像头，请检查浏览器权限设置");
+            setScanningActive(false);
+        }
+    };
+
+    // 拍照并识别
+    const captureAndScan = () => {
+        if (!scanningActive || !videoRef.current || !canvasRef.current) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+
+        if (!context) return;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const snapshotUrl = canvas.toDataURL('image/png');
+        setDebugImage(snapshotUrl);
+
+        try {
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "attemptBoth"
+            });
+
+            if (code) {
+                handleSuccess(code.data);
+            } else {
+                setScanAttempts(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error("二维码解析错误:", error);
+            Toast.error("解析过程中出错");
+        }
+    };
+
+    // 处理成功识别
+    const handleSuccess = (codeData: string) => {
+        onScan(codeData);
+        closeScanner();
+    };
+
+    // 关闭扫描器并清理资源
+    const closeScanner = () => {
+        setScanningActive(false);
+        cleanupCamera();
+        onClose();
+    };
+
+    // 清理相机资源
+    const cleanupCamera = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+    };
+
+    // 重置扫描
+    const resetScan = () => {
+        setDebugImage(null);
+        setScanAttempts(0);
+    };
+
+    // 监听visible属性变化，当模态框打开时重新初始化相机
+    useEffect(() => {
+        if (visible) {
+            // 重置状态
+            setCameraReady(false);
+            setScanningActive(false);
+            setDebugImage(null);
+            setScanAttempts(0);
+            setCameraError(null);
+
+            // 延迟启动摄像头，确保模态框已完成渲染
+            setTimeout(() => {
+                initCamera();
+            }, 500);
+        } else {
+            // 关闭时清理资源
+            cleanupCamera();
+        }
+
+        // 组件卸载时清理资源
+        return () => {
+            cleanupCamera();
+        };
+    }, [visible]);
+
+    return (
+        <Modal
+            title="扫描二维码"
+            visible={visible}
+            onCancel={closeScanner}
+            footer={
+                <Space>
+                    <Button onClick={closeScanner}>取消</Button>
+                    {debugImage ? (
+                        <Button
+                            icon={<IconRefresh />}
+                            type="primary"
+                            onClick={resetScan}
+                        >
+                            重试
+                        </Button>
+                    ) : (
+                        <Button
+                            type="primary"
+                            onClick={captureAndScan}
+                            disabled={!cameraReady}
+                            icon={<IconCamera />}
+                        >
+                            拍照识别
+                        </Button>
+                    )}
+                </Space>
+            }
+            style={{ width: 320, maxWidth: '95%' }}
+            bodyStyle={{ padding: '16px' }}
+            centered
+            closable={false}
+        >
+            <div style={{ textAlign: 'center' }}>
+                <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
+                    {/* 视频预览区域 */}
+                    <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: 240,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        backgroundColor: '#000',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }}>
+                        {!cameraReady && !debugImage && !cameraError && <Spin size="large" />}
+
+                        {cameraError && (
+                            <div style={{
+                                color: '#ff4d4f',
+                                padding: '16px',
+                                textAlign: 'center'
+                            }}>
+                                {cameraError}
+                            </div>
+                        )}
+
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                display: (debugImage || !cameraReady) ? 'none' : 'block'
+                            }}
+                        ></video>
+
+                        {/* 简化取景框 */}
+                        {cameraReady && !debugImage && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '80%',
+                                height: '80%',
+                                boxSizing: 'border-box',
+                                border: '2px solid rgba(255, 255, 255, 0.8)',
+                                borderRadius: '8px',
+                                zIndex: 2
+                            }}></div>
+                        )}
+
+                        {/* 调试图像显示 */}
+                        {debugImage && (
+                            <img
+                                src={debugImage}
+                                alt="视频快照"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain'
+                                }}
+                            />
+                        )}
+                    </div>
+
+                    {/* 识别状态 */}
+                    <div style={{ marginTop: 12, height: 24 }}>
+                        {scanAttempts > 0 && debugImage && (
+                            <div style={{
+                                fontSize: 13,
+                                padding: '4px 12px',
+                                background: '#fff5f5',
+                                color: '#ff4d4f',
+                                borderRadius: 4,
+                                display: 'inline-block'
+                            }}>
+                                未检测到二维码，请重试
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 隐藏的Canvas用于处理图像 */}
+                    <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                </div>
+
+                <div style={{
+                    marginTop: 12,
+                    color: '#666',
+                    fontSize: 13,
+                    lineHeight: 1.5
+                }}>
+                    {cameraReady && !debugImage ?
+                        '将二维码对准取景框，点击"拍照识别"' :
+                        debugImage ?
+                            scanAttempts > 0 ? '请确保二维码清晰可见，重新尝试' : '正在处理图像...' :
+                            '正在启动摄像头...'
+                    }
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 const Recharge: FC = () => {
     // 充值方式标签
     const [activeTab, setActiveTab] = useState<string>(RECHARGE_TABS.NORMAL);
@@ -77,15 +361,8 @@ const Recharge: FC = () => {
     // 兑换中
     const [redeeming, setRedeeming] = useState<boolean>(false);
 
-    // 扫码相关状态
+    // 扫码弹窗显示状态
     const [showScanner, setShowScanner] = useState<boolean>(false);
-    const [scanningActive, setScanningActive] = useState<boolean>(false);
-    const [cameraReady, setCameraReady] = useState<boolean>(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [debugImage, setDebugImage] = useState<string | null>(null);
-    const [scanAttempts, setScanAttempts] = useState(0);
-    const [cameraError, setCameraError] = useState<string | null>(null);
 
     // 美元金额
     const usdAmount = useMemo(() => {
@@ -128,118 +405,10 @@ const Recharge: FC = () => {
         }, 2000);
     };
 
-    // 处理扫码功能
-    const handleOpenScanner = () => {
-        setShowScanner(true);
-        setDebugImage(null);
-        setScanAttempts(0);
-        setCameraReady(false);
-        setCameraError(null);
-
-        setTimeout(() => {
-            startScanner();
-        }, 500);
-    };
-
-    // 启动扫描
-    const startScanner = async () => {
-        try {
-            setScanningActive(true);
-            setScanAttempts(0);
-            setCameraError(null);
-
-            const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                }
-            };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.onloadedmetadata = () => {
-                    if (videoRef.current) {
-                        videoRef.current.play()
-                            .then(() => {
-                                setCameraReady(true);
-                            })
-                            .catch(err => {
-                                console.error("视频播放失败:", err);
-                                setCameraError("视频播放失败，请尝试重新打开扫描器");
-                            });
-                    }
-                };
-            }
-        } catch (error) {
-            console.error("Error accessing camera:", error);
-            Toast.error("无法访问摄像头，请检查权限设置");
-            setCameraError("无法访问摄像头，请检查浏览器权限设置");
-            setScanningActive(false);
-        }
-    };
-
-    // 简化扫描流程，只拍照并尝试识别
-    const takeSnapshot = () => {
-        if (!scanningActive || !videoRef.current || !canvasRef.current) return;
-
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-
-        if (!context) return;
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const snapshotUrl = canvas.toDataURL('image/png');
-        setDebugImage(snapshotUrl);
-
-        try {
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "attemptBoth"
-            });
-
-            if (code) {
-                handleCodeDetected(code.data);
-            } else {
-                setScanAttempts(prev => prev + 1);
-            }
-        } catch (error) {
-            console.error("二维码解析错误:", error);
-            Toast.error("解析过程中出错");
-        }
-    };
-
-    const handleCodeDetected = (codeData: string) => {
-        setRedeemCode(codeData);
+    // 处理扫码结果
+    const handleScanResult = (code: string) => {
+        setRedeemCode(code);
         Toast.success("成功识别兑换码");
-        stopScanner();
-    };
-
-    const stopScanner = () => {
-        setScanningActive(false);
-
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => {
-                track.stop();
-            });
-            videoRef.current.srcObject = null;
-        }
-
-        setShowScanner(false);
-    };
-
-    // 重置扫描状态
-    const resetScan = () => {
-        setDebugImage(null);
-        setScanAttempts(0);
     };
 
     return (
@@ -452,7 +621,7 @@ const Recharge: FC = () => {
                                                 color: '#0052d9',
                                                 fontSize: 20
                                             }}
-                                            onClick={handleOpenScanner}
+                                            onClick={() => setShowScanner(true)}
                                         />
                                     }
                                 />
@@ -528,148 +697,12 @@ const Recharge: FC = () => {
                 </TabPane>
             </Tabs>
 
-            {/* 扫码弹窗 */}
-            <Modal
-                title="扫描二维码"
+            {/* 二维码扫描器组件 */}
+            <QrCodeScanner
                 visible={showScanner}
-                onCancel={stopScanner}
-                footer={
-                    <Space>
-                        <Button onClick={stopScanner}>取消</Button>
-                        {debugImage ? (
-                            <Button
-                                icon={<IconRefresh />}
-                                type="primary"
-                                onClick={resetScan}
-                            >
-                                重试
-                            </Button>
-                        ) : (
-                            <Button
-                                type="primary"
-                                onClick={takeSnapshot}
-                                disabled={!cameraReady}
-                                icon={<IconCamera />}
-                            >
-                                拍照识别
-                            </Button>
-                        )}
-                    </Space>
-                }
-                style={{ width: 320, maxWidth: '95%' }}
-                bodyStyle={{ padding: '16px' }}
-                centered
-                closable={false}
-            >
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
-                        {/* 视频预览区域 */}
-                        <div style={{
-                            position: 'relative',
-                            width: '100%',
-                            height: 240,
-                            borderRadius: 8,
-                            overflow: 'hidden',
-                            backgroundColor: '#000',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                        }}>
-                            {!cameraReady && !debugImage && !cameraError && (
-                                <Spin size="large" />
-                            )}
-
-                            {cameraError && (
-                                <div style={{
-                                    color: '#ff4d4f',
-                                    padding: '16px',
-                                    textAlign: 'center'
-                                }}>
-                                    {cameraError}
-                                </div>
-                            )}
-
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    display: (debugImage || !cameraReady) ? 'none' : 'block'
-                                }}
-                            ></video>
-
-                            {/* 简化取景框 */}
-                            {cameraReady && !debugImage && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    width: '80%',
-                                    height: '80%',
-                                    boxSizing: 'border-box',
-                                    border: '2px solid rgba(255, 255, 255, 0.8)',
-                                    borderRadius: '8px',
-                                    zIndex: 2
-                                }}></div>
-                            )}
-
-                            {/* 调试图像显示 */}
-                            {debugImage && (
-                                <img
-                                    src={debugImage}
-                                    alt="视频快照"
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain'
-                                    }}
-                                />
-                            )}
-                        </div>
-
-                        {/* 识别状态 */}
-                        <div style={{ marginTop: 12, height: 24 }}>
-                            {scanAttempts > 0 && debugImage && (
-                                <div style={{
-                                    fontSize: 13,
-                                    padding: '4px 12px',
-                                    background: '#fff5f5',
-                                    color: '#ff4d4f',
-                                    borderRadius: 4,
-                                    display: 'inline-block'
-                                }}>
-                                    未检测到二维码，请重试
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 隐藏的Canvas用于处理图像 */}
-                        <canvas
-                            ref={canvasRef}
-                            style={{ display: 'none' }}
-                        ></canvas>
-                    </div>
-
-                    <div style={{
-                        marginTop: 12,
-                        color: '#666',
-                        fontSize: 13,
-                        lineHeight: 1.5
-                    }}>
-                        {cameraReady && !debugImage ?
-                            '将二维码对准取景框，点击"拍照识别"' :
-                            debugImage ?
-                                scanAttempts > 0 ? '请确保二维码清晰可见，重新尝试' : '正在处理图像...' :
-                                '正在启动摄像头...'
-                        }
-                    </div>
-                </div>
-            </Modal>
+                onClose={() => setShowScanner(false)}
+                onScan={handleScanResult}
+            />
         </div>
     );
 };
