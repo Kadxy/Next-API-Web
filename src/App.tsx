@@ -1,5 +1,5 @@
 import { Layout, Nav, Toast } from '@douyinfe/semi-ui';
-import { IconCode, IconCreditCard, IconHistogram, IconHome, IconKey, IconUser } from '@douyinfe/semi-icons';
+import { IconCode, IconCreditCard, IconHelpCircle, IconHistogram, IconHome, IconKey, IconLayers, IconUser } from '@douyinfe/semi-icons';
 import { NO_SIDEBAR_PATHS, Path } from './lib/constants/paths';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -11,9 +11,10 @@ const Header = () => {
         <div style={{
             textAlign: 'center',
             width: '100%',
-            fontSize: 32,
+            fontSize: 36,
             fontWeight: 600,
-            fontFamily: 'monospace',
+            fontFamily: 'Arial, sans-serif',
+            letterSpacing: 1,
         }}>
             {import.meta.env.VITE_APP_NAME}
         </div>
@@ -49,6 +50,8 @@ const App = () => {
                             { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey /> },
                             { itemKey: Path.RECHARGE, text: '账户充值', icon: <IconCreditCard /> },
                             { itemKey: Path.ACCESS, text: '接入文档', icon: <IconCode /> },
+                            { itemKey: Path.MODEL_LIST, text: '模型列表', icon: <IconLayers /> },
+                            { itemKey: Path.FAQ, text: '常见问题', icon: <IconHelpCircle /> },
                             { itemKey: Path.ACCOUNT, text: '个人中心', icon: <IconUser /> },
                         ]}
                         onSelect={(data) => navigate(data.itemKey as PathKey)}

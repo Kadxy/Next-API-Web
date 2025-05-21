@@ -6,6 +6,8 @@ export const Path = {
   USAGE: '/usage',
   RECHARGE: '/recharge',
   ACCESS: '/access',
+  FAQ: '/faq',
+  MODEL_LIST: '/model-list',
 } as const; 
 
 export const NO_SIDEBAR_PATHS: (typeof Path)[keyof typeof Path][] = [Path.LOGIN];
