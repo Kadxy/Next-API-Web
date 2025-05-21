@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useRef } from 'react';
 import {
     Typography,
     Radio,
@@ -12,12 +12,15 @@ import {
     TabPane,
     Input,
     Toast,
+    Modal,
+    Spin,
 } from '@douyinfe/semi-ui';
-import { IconInfoCircle } from '@douyinfe/semi-icons';
+import { IconInfoCircle, IconQrCode, IconCamera, IconRefresh } from '@douyinfe/semi-icons';
 // @ts-expect-error handle payment icons
 import AlipayIcon from '@/assets/icons/alipay.svg?react';
 // @ts-expect-error handle payment icons
 import WechatPayIcon from '@/assets/icons/wechatpay.svg?react';
+import jsQR from 'jsqr';
 
 const { Title, Text } = Typography;
 
@@ -74,6 +77,16 @@ const Recharge: FC = () => {
     // 兑换中
     const [redeeming, setRedeeming] = useState<boolean>(false);
 
+    // 扫码相关状态
+    const [showScanner, setShowScanner] = useState<boolean>(false);
+    const [scanningActive, setScanningActive] = useState<boolean>(false);
+    const [cameraReady, setCameraReady] = useState<boolean>(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [debugImage, setDebugImage] = useState<string | null>(null);
+    const [scanAttempts, setScanAttempts] = useState(0);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+
     // 美元金额
     const usdAmount = useMemo(() => {
         return selectedAmount === 'custom' ? customAmount : selectedAmount;
@@ -81,7 +94,6 @@ const Recharge: FC = () => {
 
     // 获取适用价格梯度（按照金额找到对应区间）
     const priceTier = useMemo(() => {
-        // 找到最大的满足条件的价格梯度
         for (let i = PRICE_TIERS.length - 1; i >= 0; i--) {
             if (usdAmount >= PRICE_TIERS[i].min) {
                 return PRICE_TIERS[i];
@@ -103,19 +115,131 @@ const Recharge: FC = () => {
 
     // 处理充值请求
     const handleRecharge = () => {
-        // TODO: 处理充值逻辑
         console.log('充值金额:', usdAmount);
         console.log('支付方式:', paymentMethod);
     };
 
     // 处理兑换码兑换请求
     const handleRedeem = () => {
-        // TODO: 处理兑换码兑换逻辑
         console.log('兑换码:', redeemCode);
         setRedeeming(true);
         setTimeout(() => {
             setRedeeming(false);
         }, 2000);
+    };
+
+    // 处理扫码功能
+    const handleOpenScanner = () => {
+        setShowScanner(true);
+        setDebugImage(null);
+        setScanAttempts(0);
+        setCameraReady(false);
+        setCameraError(null);
+
+        setTimeout(() => {
+            startScanner();
+        }, 500);
+    };
+
+    // 启动扫描
+    const startScanner = async () => {
+        try {
+            setScanningActive(true);
+            setScanAttempts(0);
+            setCameraError(null);
+
+            const constraints = {
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.onloadedmetadata = () => {
+                    if (videoRef.current) {
+                        videoRef.current.play()
+                            .then(() => {
+                                setCameraReady(true);
+                            })
+                            .catch(err => {
+                                console.error("视频播放失败:", err);
+                                setCameraError("视频播放失败，请尝试重新打开扫描器");
+                            });
+                    }
+                };
+            }
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            Toast.error("无法访问摄像头，请检查权限设置");
+            setCameraError("无法访问摄像头，请检查浏览器权限设置");
+            setScanningActive(false);
+        }
+    };
+
+    // 简化扫描流程，只拍照并尝试识别
+    const takeSnapshot = () => {
+        if (!scanningActive || !videoRef.current || !canvasRef.current) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+
+        if (!context) return;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const snapshotUrl = canvas.toDataURL('image/png');
+        setDebugImage(snapshotUrl);
+
+        try {
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "attemptBoth"
+            });
+
+            if (code) {
+                handleCodeDetected(code.data);
+            } else {
+                setScanAttempts(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error("二维码解析错误:", error);
+            Toast.error("解析过程中出错");
+        }
+    };
+
+    const handleCodeDetected = (codeData: string) => {
+        setRedeemCode(codeData);
+        Toast.success("成功识别兑换码");
+        stopScanner();
+    };
+
+    const stopScanner = () => {
+        setScanningActive(false);
+
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+            videoRef.current.srcObject = null;
+        }
+
+        setShowScanner(false);
+    };
+
+    // 重置扫描状态
+    const resetScan = () => {
+        setDebugImage(null);
+        setScanAttempts(0);
     };
 
     return (
@@ -318,9 +442,19 @@ const Recharge: FC = () => {
                                     size="large"
                                     value={redeemCode}
                                     onChange={(value) => setRedeemCode(value)}
-                                    placeholder="A2FCD-0KINH-JFG6L-ME4OP"
+                                    placeholder="请输入兑换码"
                                     style={{ maxWidth: 280 }}
                                     disabled={redeeming}
+                                    suffix={
+                                        <IconQrCode
+                                            style={{
+                                                cursor: 'pointer',
+                                                color: '#0052d9',
+                                                fontSize: 20
+                                            }}
+                                            onClick={handleOpenScanner}
+                                        />
+                                    }
                                 />
                                 <Button
                                     size="large"
@@ -393,6 +527,149 @@ const Recharge: FC = () => {
                     </div>
                 </TabPane>
             </Tabs>
+
+            {/* 扫码弹窗 */}
+            <Modal
+                title="扫描二维码"
+                visible={showScanner}
+                onCancel={stopScanner}
+                footer={
+                    <Space>
+                        <Button onClick={stopScanner}>取消</Button>
+                        {debugImage ? (
+                            <Button
+                                icon={<IconRefresh />}
+                                type="primary"
+                                onClick={resetScan}
+                            >
+                                重试
+                            </Button>
+                        ) : (
+                            <Button
+                                type="primary"
+                                onClick={takeSnapshot}
+                                disabled={!cameraReady}
+                                icon={<IconCamera />}
+                            >
+                                拍照识别
+                            </Button>
+                        )}
+                    </Space>
+                }
+                style={{ width: 320, maxWidth: '95%' }}
+                bodyStyle={{ padding: '16px' }}
+                centered
+                closable={false}
+            >
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
+                        {/* 视频预览区域 */}
+                        <div style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: 240,
+                            borderRadius: 8,
+                            overflow: 'hidden',
+                            backgroundColor: '#000',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}>
+                            {!cameraReady && !debugImage && !cameraError && (
+                                <Spin size="large" />
+                            )}
+
+                            {cameraError && (
+                                <div style={{
+                                    color: '#ff4d4f',
+                                    padding: '16px',
+                                    textAlign: 'center'
+                                }}>
+                                    {cameraError}
+                                </div>
+                            )}
+
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: (debugImage || !cameraReady) ? 'none' : 'block'
+                                }}
+                            ></video>
+
+                            {/* 简化取景框 */}
+                            {cameraReady && !debugImage && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '80%',
+                                    height: '80%',
+                                    boxSizing: 'border-box',
+                                    border: '2px solid rgba(255, 255, 255, 0.8)',
+                                    borderRadius: '8px',
+                                    zIndex: 2
+                                }}></div>
+                            )}
+
+                            {/* 调试图像显示 */}
+                            {debugImage && (
+                                <img
+                                    src={debugImage}
+                                    alt="视频快照"
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* 识别状态 */}
+                        <div style={{ marginTop: 12, height: 24 }}>
+                            {scanAttempts > 0 && debugImage && (
+                                <div style={{
+                                    fontSize: 13,
+                                    padding: '4px 12px',
+                                    background: '#fff5f5',
+                                    color: '#ff4d4f',
+                                    borderRadius: 4,
+                                    display: 'inline-block'
+                                }}>
+                                    未检测到二维码，请重试
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 隐藏的Canvas用于处理图像 */}
+                        <canvas
+                            ref={canvasRef}
+                            style={{ display: 'none' }}
+                        ></canvas>
+                    </div>
+
+                    <div style={{
+                        marginTop: 12,
+                        color: '#666',
+                        fontSize: 13,
+                        lineHeight: 1.5
+                    }}>
+                        {cameraReady && !debugImage ?
+                            '将二维码对准取景框，点击"拍照识别"' :
+                            debugImage ?
+                                scanAttempts > 0 ? '请确保二维码清晰可见，重新尝试' : '正在处理图像...' :
+                                '正在启动摄像头...'
+                        }
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
