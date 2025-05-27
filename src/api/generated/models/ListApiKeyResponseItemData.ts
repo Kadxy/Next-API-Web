@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ListApiKeyResponseItemWalletItemData } from './ListApiKeyResponseItemWalletItemData';
 export type ListApiKeyResponseItemData = {
     /**
      * 哈希密钥
@@ -27,5 +28,9 @@ export type ListApiKeyResponseItemData = {
      * 更新时间
      */
     updatedAt: string;
+    /**
+     * 钱包
+     */
+    wallet: ListApiKeyResponseItemWalletItemData;
 };
 

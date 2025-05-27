@@ -40,7 +40,9 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
     const [walletsOption, setWalletsOption] = useState<{ label: string; value: string }[]>([]);
 
     useEffect(() => {
-        getWalletsOption().then(setWalletsOption);
+        getWalletsOption()
+            .then(setWalletsOption)
+            .catch((msg) => Toast.error({ content: msg, stack: true }));
     }, []);
 
     const handleCreateApiKey = async () => {
@@ -132,19 +134,21 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                         placeholder="输入 API key 名称"
                         value={displayName}
                         onChange={(value) => setDisplayName(value)}
+                        style={{ width: '100%' }}
                         autoFocus
                     />
                     <Select
                         placeholder="选择钱包"
-                        optionList={walletsOption}
                         value={walletUid}
                         onChange={(value) => setWalletUid(value as string)}
+                        optionList={walletsOption}
                         style={{ width: '100%' }}
+                        showClear
                     />
                     <Button
                         theme='solid'
                         loading={creating}
-                        disabled={!displayName}
+                        disabled={!displayName || !walletUid}
                         onClick={handleCreateApiKey}
                     >
                         创建
@@ -311,6 +315,12 @@ const ApiKeys: FC = () => {
             key: 'displayName',
             width: "27.5%",
             ellipsis: true,
+        },
+        {
+            title: '绑定钱包',
+            key: 'wallet.displayName',
+            dataIndex: 'wallet.displayName',
+            width: "20%",
         },
         {
             title: 'Key',

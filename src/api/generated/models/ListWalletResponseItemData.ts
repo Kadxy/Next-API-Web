@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ListWalletResponseData = {
+export type ListWalletResponseItemData = {
     /**
      * 钱包唯一标识符
      */

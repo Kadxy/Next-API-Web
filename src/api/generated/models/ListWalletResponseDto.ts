@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ListWalletResponseData } from './ListWalletResponseData';
+import type { ListWalletResponseItemData } from './ListWalletResponseItemData';
 export type ListWalletResponseDto = {
     /**
      * Operation Success
@@ -15,6 +15,6 @@ export type ListWalletResponseDto = {
     /**
      * Response data, only when success is true
      */
-    data: Array<ListWalletResponseData>;
+    data: Array<ListWalletResponseItemData>;
 };
 
