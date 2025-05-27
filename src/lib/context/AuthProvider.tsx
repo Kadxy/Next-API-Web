@@ -1,11 +1,12 @@
 import { FC, useEffect, useState } from 'react';
-import AuthContext, { ContextUser } from './AuthContext';
+import AuthContext from './AuthContext';
 import { STORE_KEYS } from '../constants/store';
-import { getServerApi, parseResponse } from '../../api/utils';
+import { getServerApi, handleResponse } from '../../api/utils';
 import { ProviderProps } from './hooks';
+import { UserResponseData } from '../../api/generated';
 
 const AuthProvider: FC<ProviderProps> = ({ children }) => {
-    const [user, setUser] = useState<ContextUser | null>(null);
+    const [user, setUser] = useState<UserResponseData | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -26,7 +27,7 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
 
             // 调用API验证令牌有效性并获取最新的用户信息
             try {
-                parseResponse(await getServerApi().authentication.authControllerAccount(), {
+                handleResponse(getServerApi().authentication.authControllerAccount(), {
                     onSuccess: (data) => updateUser(data),
                     onError: () => _reset(),
                 });
@@ -57,7 +58,7 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
         }
     };
 
-    const updateUser = (user: ContextUser | null) => {
+    const updateUser = (user: UserResponseData | null) => {
         setUser(user);
         if (user) {
             localStorage.setItem(STORE_KEYS.USER, JSON.stringify(user));

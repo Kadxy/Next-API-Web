@@ -2,14 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateApiKeyRequestDto = {
+export type RedeemCodeDto = {
     /**
-     * 显示名称
+     * 兑换码
      */
-    displayName: string;
-    /**
-     * 钱包UID
-     */
-    walletUid: string;
+    code: string;
 };
 

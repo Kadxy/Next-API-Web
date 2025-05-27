@@ -44,6 +44,10 @@ export type UserResponseData = {
      */
     isActive: boolean;
     /**
+     * User Is Admin
+     */
+    isAdmin: boolean;
+    /**
      * User Created At
      */
     createdAt: string;

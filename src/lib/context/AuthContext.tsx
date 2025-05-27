@@ -1,7 +1,7 @@
 import { createContext } from 'react';
 import { UserResponseData } from '../../api/generated';
 
-interface AuthContextType {
+export interface AuthContextType {
     // Loading
     isLoading: boolean;
 

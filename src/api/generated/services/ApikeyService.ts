@@ -5,6 +5,7 @@
 import type { CreateApiKeyRequestDto } from '../models/CreateApiKeyRequestDto';
 import type { CreateApiKeyResponseDto } from '../models/CreateApiKeyResponseDto';
 import type { ListApiKeyResponseDto } from '../models/ListApiKeyResponseDto';
+import type { UpdateApiKeyDisplayNameRequestDto } from '../models/UpdateApiKeyDisplayNameRequestDto';
 import type { UpdateApiKeyDisplayNameResponseDto } from '../models/UpdateApiKeyDisplayNameResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -48,7 +49,7 @@ export class ApikeyService {
         requestBody,
     }: {
         hashKey: string,
-        requestBody: CreateApiKeyRequestDto,
+        requestBody: UpdateApiKeyDisplayNameRequestDto,
     }): CancelablePromise<UpdateApiKeyDisplayNameResponseDto> {
         return this.httpRequest.request({
             method: 'PATCH',
