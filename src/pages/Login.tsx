@@ -4,7 +4,7 @@ import Icon, { IconArrowLeft, IconGithubLogo, IconMail, IconSend } from '@douyin
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
-import { getServerApi, parseResponse } from '../api/utils';
+import { getServerApi, handleResponse } from '../api/utils';
 // @ts-expect-error handle svg file
 import GoogleIcon from '@/assets/icons/google.svg?react';
 // @ts-expect-error handle svg file
@@ -144,12 +144,14 @@ const Login: FC = () => {
 
         try {
             setPreparing({ ...preparing, [LoginMethod.Email]: true });
-            parseResponse(await api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
+            await handleResponse(api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
                     setShowVerifyCode(true);
                     Toast.success({ content: '验证码已发送', stack: true });
                 },
-                onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                onError: (errorMsg) => {
+                    Toast.error({ content: errorMsg, stack: true });
+                }
             });
         } catch (error) {
             Toast.error({ content: getErrorMsg(error, '发送验证码失败'), stack: true });
@@ -164,15 +166,19 @@ const Login: FC = () => {
         try {
             switch (platform) {
                 case LoginMethod.Github:
-                    parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
+                    await handleResponse(api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
-                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
                     });
                     break;
                 case LoginMethod.Google:
-                    parseResponse(await api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
+                    await handleResponse(api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
-                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
                     });
                     break;
                 default:
@@ -230,7 +236,7 @@ const Login: FC = () => {
     const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
         setProcessing({ ...processing, [LoginMethod.Email]: true });
         try {
-            parseResponse(await api.authentication.authControllerLogin({ requestBody: values }), {
+            await handleResponse(api.authentication.authControllerLogin({ requestBody: values }), {
                 onSuccess: (data) => handleLoginResponse(data),
                 onError: (errorMsg) => {
                     setInputs({ ...inputs, code: '' });
@@ -250,15 +256,19 @@ const Login: FC = () => {
             setProcessing({ ...processing, [platform]: true });
             switch (platform) {
                 case LoginMethod.Github:
-                    parseResponse(await api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
+                    await handleResponse(api.gitHubAuthentication.gitHubAuthControllerGithubLogin({ requestBody: { code, state } }), {
                         onSuccess: (data) => handleLoginResponse(data),
-                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
                     });
                     break;
                 case LoginMethod.Google:
-                    parseResponse(await api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
+                    await handleResponse(api.googleAuthentication.googleAuthControllerGoogleLogin({ requestBody: { code, state } }), {
                         onSuccess: (data) => handleLoginResponse(data),
-                        onError: (errorMsg) => Toast.error({ content: errorMsg, stack: true })
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
                     });
                     break;
             }

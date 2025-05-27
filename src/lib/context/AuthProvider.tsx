@@ -27,7 +27,7 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
 
             // 调用API验证令牌有效性并获取最新的用户信息
             try {
-                handleResponse(getServerApi().authentication.authControllerAccount(), {
+                await handleResponse(getServerApi().authentication.authControllerAccount(), {
                     onSuccess: (data) => updateUser(data),
                     onError: () => _reset(),
                 });

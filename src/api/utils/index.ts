@@ -11,32 +11,6 @@ export interface ApiResponse<T = unknown> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ExtractResponseData<T> = T extends ApiResponse<infer D> ? D : any;
 
-/**
- * 解析API响应
- * @param response API响应对象
- * @param options 处理选项
- * @returns 成功时返回data字段，失败时返回null
- * @deprecated 使用`handleResponse`替代
- */
-export const parseResponse = <T, D = ExtractResponseData<T>>(
-    response: T,
-    options: {
-        onSuccess?: (data: D) => void,
-        onError?: (msg: string) => void,
-    }
-) => {
-    // 将响应转换为ApiResponse类型
-    const { success, msg, data=null } = response as unknown as ApiResponse<D>;
-
-    if (success) {
-        options.onSuccess?.(data!);
-        return data;
-    }
-
-    options.onError?.(msg || '');
-    return null;
-}
-
 export const handleResponse = async <T, D = ExtractResponseData<T>>(
     controller: CancelablePromise<T>,
     options: {
