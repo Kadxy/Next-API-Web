@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { AxiosHttpRequest } from './core/AxiosHttpRequest';
@@ -11,6 +11,7 @@ import { GitHubAuthenticationService } from './services/GitHubAuthenticationServ
 import { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
 import { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 import { RedemptionService } from './services/RedemptionService';
+import { WalletService } from './services/WalletService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class ServerAPI {
     public readonly apikey: ApikeyService;
@@ -19,6 +20,7 @@ export class ServerAPI {
     public readonly googleAuthentication: GoogleAuthenticationService;
     public readonly passkeyAuthentication: PasskeyAuthenticationService;
     public readonly redemption: RedemptionService;
+    public readonly wallet: WalletService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = AxiosHttpRequest) {
         this.request = new HttpRequest({
@@ -38,6 +40,7 @@ export class ServerAPI {
         this.googleAuthentication = new GoogleAuthenticationService(this.request);
         this.passkeyAuthentication = new PasskeyAuthenticationService(this.request);
         this.redemption = new RedemptionService(this.request);
+        this.wallet = new WalletService(this.request);
     }
 }
 

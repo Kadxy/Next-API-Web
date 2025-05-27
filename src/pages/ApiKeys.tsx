@@ -8,6 +8,7 @@ import {
     Modal,
     Toast,
     Input,
+    Select,
 } from '@douyinfe/semi-ui';
 import { IconEdit, IconDelete } from '@douyinfe/semi-icons';
 import { ListApiKeyResponseItemData } from '../api/generated';
@@ -15,6 +16,7 @@ import { getServerApi } from '../api/utils';
 import dayjs from 'dayjs';
 import { getErrorMsg } from '../utils';
 import { ColumnProps } from '@douyinfe/semi-ui/lib/es/table/interface';
+import { getWalletsOption } from '../api/utils/wallets-option';
 
 const CREATE_SUCCESS_MESSAGE = '请将此 API key 保存在安全且易于访问的地方。您的 API key 不会以明文形式储存，因此你将无法再次查看它。';
 const DELETE_CONFIRM_MESSAGE = '该 API key 将立即被禁用。使用此密钥发出的 API 请求将被拒绝，这可能会导致仍然依赖它的任何系统崩溃。 一旦删除，你将无法再查看或修改此 API key。';
@@ -33,13 +35,19 @@ interface EditApiKeyModalProps extends ApiKeyModalProps {
 const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }) => {
     const [rawKey, setRawKey] = useState<string>('');
     const [displayName, setDisplayName] = useState<string>('');
+    const [walletUid, setWalletUid] = useState<string>('');
     const [creating, setCreating] = useState<boolean>(false);
+    const [walletsOption, setWalletsOption] = useState<{ label: string; value: string }[]>([]);
+
+    useEffect(() => {
+        getWalletsOption().then(setWalletsOption);
+    }, []);
 
     const handleCreateApiKey = async () => {
         try {
             setCreating(true);
             const { success, data, msg } = await getServerApi().apikey.apikeyControllerCreateApiKey({
-                requestBody: { displayName }
+                requestBody: { displayName, walletUid }
             });
             if (!success) {
                 throw new Error(msg);
@@ -121,10 +129,17 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                     align='end'
                 >
                     <Input
-                        placeholder="输入 API key 的名称"
+                        placeholder="输入 API key 名称"
                         value={displayName}
                         onChange={(value) => setDisplayName(value)}
                         autoFocus
+                    />
+                    <Select
+                        placeholder="选择钱包"
+                        optionList={walletsOption}
+                        value={walletUid}
+                        onChange={(value) => setWalletUid(value as string)}
+                        style={{ width: '100%' }}
                     />
                     <Button
                         theme='solid'

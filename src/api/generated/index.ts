@@ -1,6 +1,7 @@
 /* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
+/* eslint-disable */
 export { ServerAPI } from './ServerAPI';
 
 export { ApiError } from './core/ApiError';
@@ -22,6 +23,8 @@ export type { ListApiKeyResponseDto } from './models/ListApiKeyResponseDto';
 export type { ListApiKeyResponseItemData } from './models/ListApiKeyResponseItemData';
 export type { ListPasskeysResponseData } from './models/ListPasskeysResponseData';
 export type { ListPasskeysResponseDto } from './models/ListPasskeysResponseDto';
+export type { ListWalletResponseData } from './models/ListWalletResponseData';
+export type { ListWalletResponseDto } from './models/ListWalletResponseDto';
 export type { LoginResponseData } from './models/LoginResponseData';
 export type { LoginResponseDto } from './models/LoginResponseDto';
 export type { Object } from './models/Object';
@@ -40,3 +43,4 @@ export { GitHubAuthenticationService } from './services/GitHubAuthenticationServ
 export { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
 export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 export { RedemptionService } from './services/RedemptionService';
+export { WalletService } from './services/WalletService';
