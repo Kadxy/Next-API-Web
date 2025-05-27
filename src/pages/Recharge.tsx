@@ -21,6 +21,7 @@ import AlipayIcon from '@/assets/icons/alipay.svg?react';
 // @ts-expect-error handle payment icons
 import WechatPayIcon from '@/assets/icons/wechatpay.svg?react';
 import jsQR from 'jsqr';
+import { handleResponse, getServerApi } from '../api/utils';
 
 const { Title, Text } = Typography;
 
@@ -402,12 +403,26 @@ const Recharge: FC = () => {
     };
 
     // 处理兑换码兑换请求
-    const handleRedeem = () => {
-        console.log('兑换码:', redeemCode);
+    const handleRedeem = async () => {
         setRedeeming(true);
-        setTimeout(() => {
+        try {
+            await handleResponse(
+                getServerApi().redemption.redemptionControllerRedeem({
+                    requestBody: { code: redeemCode }
+                }), {
+                onSuccess: () => {
+                    Toast.success("兑换成功");
+                    setRedeemCode('');
+                },
+                onError: (msg) => {
+                    Toast.error({ content: msg, stack: true });
+                }
+            });
+        } catch (error) {
+            console.error('兑换码兑换失败:', error);
+        } finally {
             setRedeeming(false);
-        }, 2000);
+        }
     };
 
     // 处理扫码结果
@@ -637,21 +652,18 @@ const Recharge: FC = () => {
                         <Title heading={4} style={{ marginBottom: 24 }}>使用兑换码</Title>
 
                         <Space vertical align="start" style={{ width: '100%' }} spacing={24}>
-                            <Space style={{ width: '100%' }}>
+                            <Space spacing='tight' style={{ width: '100%' }}>
                                 <Input
                                     size="large"
                                     value={redeemCode}
                                     onChange={(value) => setRedeemCode(value)}
                                     placeholder="请输入兑换码"
-                                    style={{ maxWidth: 280 }}
+                                    style={{ maxWidth: 286 }}
+                                    maxLength={24}
                                     disabled={redeeming}
                                     suffix={
                                         <IconQrCode
-                                            style={{
-                                                cursor: 'pointer',
-                                                color: '#0052d9',
-                                                fontSize: 20
-                                            }}
+                                            style={{ cursor: 'pointer', color: '#0052d9', fontSize: 20 }}
                                             onClick={() => setShowScanner(true)}
                                         />
                                     }
@@ -661,7 +673,7 @@ const Recharge: FC = () => {
                                     type="primary"
                                     onClick={handleRedeem}
                                     loading={redeeming}
-                                    style={{ marginLeft: 8 }}
+                                    disabled={!redeemCode}
                                 >
                                     确认兑换
                                 </Button>
@@ -671,10 +683,10 @@ const Recharge: FC = () => {
                                 <Title heading={5} type="secondary">兑换说明</Title>
                                 <Space vertical align="start" spacing={12}>
                                     <Text type="tertiary" style={{ lineHeight: 1.6 }}>
-                                        1. 兑换成功后，您将立即获得兑换码所包含的额度。
+                                        1. 兑换额度将充值到个人钱包中。
                                     </Text>
                                     <Text type="tertiary" style={{ lineHeight: 1.6 }}>
-                                        2. 兑换前，请确认兑换的账号，默认将兑换至当前登录账号。
+                                        2. 兑换成功后您将获得兑换码所含额度。
                                     </Text>
                                     <Text type="tertiary" style={{ lineHeight: 1.6 }}>
                                         3. 每个兑换码仅限兑换一次，且兑换成功后不支持退款，请您谨慎操作。

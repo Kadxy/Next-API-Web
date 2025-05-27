@@ -37,7 +37,7 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
             await result;
         }
     }
-    
+
     return null;
 }
 
