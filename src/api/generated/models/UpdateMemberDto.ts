@@ -2,14 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ListApiKeyResponseItemWalletItemData = {
+export type UpdateMemberDto = {
     /**
-     * 钱包UID
+     * 钱包成员别名
      */
-    uid: string;
+    alias?: string;
     /**
-     * 钱包名称
+     * 额度限制
      */
-    displayName: string;
+    creditLimit?: number;
 };
 

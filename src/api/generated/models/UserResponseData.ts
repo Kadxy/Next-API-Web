@@ -36,14 +36,6 @@ export type UserResponseData = {
      */
     googleId: string;
     /**
-     * User Two Factor Enabled
-     */
-    twoFactorEnabled: boolean;
-    /**
-     * User Is Active
-     */
-    isActive: boolean;
-    /**
      * User Is Admin
      */
     isAdmin: boolean;
@@ -59,9 +51,5 @@ export type UserResponseData = {
      * User Last Login At
      */
     lastLoginAt: string;
-    /**
-     * User Wallet
-     */
-    wallet: Record<string, any>;
 };
 

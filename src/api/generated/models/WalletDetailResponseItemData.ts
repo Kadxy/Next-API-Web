@@ -2,14 +2,18 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ListApiKeyResponseItemWalletItemData = {
+export type WalletDetailResponseItemData = {
     /**
-     * 钱包UID
+     * 钱包唯一标识符
      */
     uid: string;
     /**
      * 钱包名称
      */
     displayName: string;
+    /**
+     * 钱包成员
+     */
+    members: Array<any[]>;
 };
 

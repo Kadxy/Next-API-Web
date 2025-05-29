@@ -10,6 +10,8 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { AddMemberDto } from './models/AddMemberDto';
+export type { BaseResponse } from './models/BaseResponse';
 export type { CreateApiKeyRequestDto } from './models/CreateApiKeyRequestDto';
 export type { CreateApiKeyResponseData } from './models/CreateApiKeyResponseData';
 export type { CreateApiKeyResponseDto } from './models/CreateApiKeyResponseDto';
@@ -34,9 +36,12 @@ export type { RedeemCodeResponseDto } from './models/RedeemCodeResponseDto';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 export type { UpdateApiKeyDisplayNameRequestDto } from './models/UpdateApiKeyDisplayNameRequestDto';
 export type { UpdateApiKeyDisplayNameResponseDto } from './models/UpdateApiKeyDisplayNameResponseDto';
+export type { UpdateMemberDto } from './models/UpdateMemberDto';
 export type { UpdatePasskeyDisplayNameRequestDto } from './models/UpdatePasskeyDisplayNameRequestDto';
 export type { UserResponseData } from './models/UserResponseData';
 export type { UserResponseDto } from './models/UserResponseDto';
+export type { WalletDetailResponseDto } from './models/WalletDetailResponseDto';
+export type { WalletDetailResponseItemData } from './models/WalletDetailResponseItemData';
 
 export { ApikeyService } from './services/ApikeyService';
 export { AuthenticationService } from './services/AuthenticationService';

@@ -2,14 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ListApiKeyResponseItemWalletItemData = {
+export type BaseResponse = {
     /**
-     * 钱包UID
+     * Operation Success
      */
-    uid: string;
+    success: boolean;
     /**
-     * 钱包名称
+     * Error Message, only when success is false
      */
-    displayName: string;
+    msg: string;
 };
 
