@@ -4,7 +4,7 @@ import {useLocation, useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
 import {useAuth} from '../../lib/context/hooks';
 import {getDayjsEasyRead, getDayjsFormat, getErrorMsg} from '../../utils';
-import {IconEdit, IconClose, IconTick} from "@douyinfe/semi-icons";
+import {IconClose, IconEdit, IconSpin, IconTick} from "@douyinfe/semi-icons";
 import {getServerApi, handleResponse} from '../../api/utils';
 
 const {Title, Text} = Typography;
@@ -16,6 +16,7 @@ const AccountInfo: FC = () => {
 
     // 用户名编辑状态
     const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
+    const [isChangingDisplayName, setIsChangingDisplayName] = useState(false);
     const [newDisplayName, setNewDisplayName] = useState('');
 
     // 开始编辑用户名
@@ -42,6 +43,8 @@ const AccountInfo: FC = () => {
             return;
         }
 
+        setIsChangingDisplayName(true)
+
         try {
             await handleResponse(
                 getServerApi().authentication.authControllerUpdateDisplayName({
@@ -60,6 +63,8 @@ const AccountInfo: FC = () => {
             );
         } catch (error) {
             Toast.error({content: getErrorMsg(error, '更新用户名失败')});
+        } finally {
+            setIsChangingDisplayName(false)
         }
     };
 
@@ -107,15 +112,22 @@ const AccountInfo: FC = () => {
                                             onChange={setNewDisplayName}
                                             placeholder="请输入用户名"
                                             style={{width: 200}}
+                                            disabled={isChangingDisplayName}
                                         />
-                                        <IconTick
-                                            style={{cursor: 'pointer', color: '#52c41a'}}
-                                            onClick={handleSaveDisplayName}
-                                        />
-                                        <IconClose
-                                            style={{cursor: 'pointer', color: '#ff4d4f'}}
-                                            onClick={handleCancelEdit}
-                                        />
+                                        {isChangingDisplayName ?
+                                            <IconSpin spin/>
+                                            :
+                                            (
+                                                <>
+                                                    <IconTick
+                                                        style={{cursor: 'pointer', color: '#52c41a'}}
+                                                        onClick={handleSaveDisplayName}
+                                                    />
+                                                    <IconClose
+                                                        style={{cursor: 'pointer', color: '#ff4d4f'}}
+                                                        onClick={handleCancelEdit}
+                                                    />
+                                                </>)}
                                     </Space>
                                 ) : (
                                     <>
