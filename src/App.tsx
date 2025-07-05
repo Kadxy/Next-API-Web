@@ -11,7 +11,7 @@ const Header = () => {
         <div style={{
             textAlign: 'center',
             width: '100%',
-            fontSize: 36,
+            fontSize: 30,
             fontWeight: 600,
             fontFamily: 'Arial, sans-serif',
             letterSpacing: 1,

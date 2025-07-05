@@ -93,3 +93,7 @@ export const formatRelativeTime = (
 
 // 为了向后兼容，保留旧函数名称但调用新函数
 export const getDayjsEasyRead = formatRelativeTime;
+
+export const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};

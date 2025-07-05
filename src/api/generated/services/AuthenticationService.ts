@@ -5,6 +5,7 @@
 import type { EmailLoginDto } from '../models/EmailLoginDto';
 import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { SendEmailLoginCodeDto } from '../models/SendEmailLoginCodeDto';
+import type { UpdateDisplayNameDto } from '../models/UpdateDisplayNameDto';
 import type { UserResponseDto } from '../models/UserResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -75,6 +76,23 @@ export class AuthenticationService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/auth/self',
+        });
+    }
+    /**
+     * Update User Display Name
+     * @returns UserResponseDto
+     * @throws ApiError
+     */
+    public authControllerUpdateDisplayName({
+        requestBody,
+    }: {
+        requestBody: UpdateDisplayNameDto,
+    }): CancelablePromise<UserResponseDto> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/auth/self/displayName',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

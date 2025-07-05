@@ -7,18 +7,22 @@ import type { OpenAPIConfig } from './core/OpenAPI';
 import { AxiosHttpRequest } from './core/AxiosHttpRequest';
 import { ApikeyService } from './services/ApikeyService';
 import { AuthenticationService } from './services/AuthenticationService';
+import { BillingService } from './services/BillingService';
 import { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 import { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
 import { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
+import { ProxyService } from './services/ProxyService';
 import { RedemptionService } from './services/RedemptionService';
 import { WalletService } from './services/WalletService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class ServerAPI {
     public readonly apikey: ApikeyService;
     public readonly authentication: AuthenticationService;
+    public readonly billing: BillingService;
     public readonly gitHubAuthentication: GitHubAuthenticationService;
     public readonly googleAuthentication: GoogleAuthenticationService;
     public readonly passkeyAuthentication: PasskeyAuthenticationService;
+    public readonly proxy: ProxyService;
     public readonly redemption: RedemptionService;
     public readonly wallet: WalletService;
     public readonly request: BaseHttpRequest;
@@ -36,9 +40,11 @@ export class ServerAPI {
         });
         this.apikey = new ApikeyService(this.request);
         this.authentication = new AuthenticationService(this.request);
+        this.billing = new BillingService(this.request);
         this.gitHubAuthentication = new GitHubAuthenticationService(this.request);
         this.googleAuthentication = new GoogleAuthenticationService(this.request);
         this.passkeyAuthentication = new PasskeyAuthenticationService(this.request);
+        this.proxy = new ProxyService(this.request);
         this.redemption = new RedemptionService(this.request);
         this.wallet = new WalletService(this.request);
     }

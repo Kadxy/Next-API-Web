@@ -36,6 +36,7 @@ export type { RedeemCodeResponseDto } from './models/RedeemCodeResponseDto';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
 export type { UpdateApiKeyDisplayNameRequestDto } from './models/UpdateApiKeyDisplayNameRequestDto';
 export type { UpdateApiKeyDisplayNameResponseDto } from './models/UpdateApiKeyDisplayNameResponseDto';
+export type { UpdateDisplayNameDto } from './models/UpdateDisplayNameDto';
 export type { UpdateMemberDto } from './models/UpdateMemberDto';
 export type { UpdatePasskeyDisplayNameRequestDto } from './models/UpdatePasskeyDisplayNameRequestDto';
 export type { UserResponseData } from './models/UserResponseData';
@@ -45,8 +46,10 @@ export type { WalletDetailResponseItemData } from './models/WalletDetailResponse
 
 export { ApikeyService } from './services/ApikeyService';
 export { AuthenticationService } from './services/AuthenticationService';
+export { BillingService } from './services/BillingService';
 export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 export { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
 export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
+export { ProxyService } from './services/ProxyService';
 export { RedemptionService } from './services/RedemptionService';
 export { WalletService } from './services/WalletService';
