@@ -15,6 +15,6 @@ export type WalletDetailResponseDto = {
     /**
      * Response data, only when success is true
      */
-    data: Array<WalletDetailResponseItemData>;
+    data: WalletDetailResponseItemData;
 };
 

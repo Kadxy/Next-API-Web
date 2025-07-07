@@ -6,6 +6,7 @@ import type { AddMemberDto } from '../models/AddMemberDto';
 import type { BaseResponse } from '../models/BaseResponse';
 import type { ListWalletResponseDto } from '../models/ListWalletResponseDto';
 import type { UpdateMemberDto } from '../models/UpdateMemberDto';
+import type { UpdateWalletDisplayNameDto } from '../models/UpdateWalletDisplayNameDto';
 import type { WalletDetailResponseDto } from '../models/WalletDetailResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -41,25 +42,44 @@ export class WalletService {
         });
     }
     /**
+     * 更新钱包名称
+     * @returns BaseResponse
+     * @throws ApiError
+     */
+    public walletControllerUpdateWalletDisplayName({
+        walletUid,
+        requestBody,
+    }: {
+        walletUid: string,
+        requestBody: UpdateWalletDisplayNameDto,
+    }): CancelablePromise<BaseResponse> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/wallets/{walletUid}/displayName',
+            path: {
+                'walletUid': walletUid,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 添加钱包成员
      * @returns BaseResponse
      * @throws ApiError
      */
     public walletControllerAddMember({
         walletUid,
-        memberUid,
         requestBody,
     }: {
         walletUid: string,
-        memberUid: string,
         requestBody: AddMemberDto,
     }): CancelablePromise<BaseResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/wallets/{walletUid}/members/{memberUid}',
+            url: '/wallets/{walletUid}/members/add',
             path: {
                 'walletUid': walletUid,
-                'memberUid': memberUid,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -109,6 +129,45 @@ export class WalletService {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * 离开钱包
+     * @returns BaseResponse
+     * @throws ApiError
+     */
+    public walletControllerLeaveWallet({
+        walletUid,
+    }: {
+        walletUid: string,
+    }): CancelablePromise<BaseResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/wallets/{walletUid}/members/leave',
+            path: {
+                'walletUid': walletUid,
+            },
+        });
+    }
+    /**
+     * 重置钱包成员已使用额度
+     * @returns BaseResponse
+     * @throws ApiError
+     */
+    public walletControllerResetCreditUsage({
+        walletUid,
+        memberUid,
+    }: {
+        walletUid: string,
+        memberUid: string,
+    }): CancelablePromise<BaseResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/wallets/{walletUid}/members/{memberUid}/resetCreditUsage',
+            path: {
+                'walletUid': walletUid,
+                'memberUid': memberUid,
+            },
         });
     }
 }

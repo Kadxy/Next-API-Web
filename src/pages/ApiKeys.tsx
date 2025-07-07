@@ -63,7 +63,7 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
             }
         } finally {
             setCreating(false);
-        };
+        }
     }
 
     const handleCopyApiKey = () => {
@@ -418,6 +418,7 @@ const ApiKeys: FC = () => {
                             ) : '暂无符合条件的 API key'}
                         </Typography.Text>
                     </div>)}
+                pagination={false}
             />
             <CreateApiKeyModal
                 visible={showCreateModal}

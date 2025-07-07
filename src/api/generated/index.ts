@@ -39,10 +39,13 @@ export type { UpdateApiKeyDisplayNameResponseDto } from './models/UpdateApiKeyDi
 export type { UpdateDisplayNameDto } from './models/UpdateDisplayNameDto';
 export type { UpdateMemberDto } from './models/UpdateMemberDto';
 export type { UpdatePasskeyDisplayNameRequestDto } from './models/UpdatePasskeyDisplayNameRequestDto';
+export type { UpdateWalletDisplayNameDto } from './models/UpdateWalletDisplayNameDto';
 export type { UserResponseData } from './models/UserResponseData';
 export type { UserResponseDto } from './models/UserResponseDto';
 export type { WalletDetailResponseDto } from './models/WalletDetailResponseDto';
 export type { WalletDetailResponseItemData } from './models/WalletDetailResponseItemData';
+export type { WalletDetailResponseMemberItemData } from './models/WalletDetailResponseMemberItemData';
+export type { WalletDetailResponseMemberUserItemData } from './models/WalletDetailResponseMemberUserItemData';
 
 export { ApikeyService } from './services/ApikeyService';
 export { AuthenticationService } from './services/AuthenticationService';

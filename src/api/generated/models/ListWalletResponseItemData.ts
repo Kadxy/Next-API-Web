@@ -4,6 +4,10 @@
 /* eslint-disable */
 export type ListWalletResponseItemData = {
     /**
+     * 是否所有者
+     */
+    isOwner: boolean;
+    /**
      * 钱包唯一标识符
      */
     uid: string;
@@ -15,5 +19,13 @@ export type ListWalletResponseItemData = {
      * 钱包名称
      */
     displayName: string;
+    /**
+     * 钱包成员额度限制, isOwner=false 时展示
+     */
+    creditLimit: number;
+    /**
+     * 钱包成员已使用额度, isOwner=false 时展示
+     */
+    creditUsed: number;
 };
 

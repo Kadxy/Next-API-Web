@@ -2,18 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UpdateMemberDto = {
-    /**
-     * 用户UID
-     */
-    memberUid?: string;
+export type UpdateWalletDisplayNameDto = {
     /**
      * 钱包成员别名
      */
-    alias?: string;
-    /**
-     * 额度限制
-     */
-    creditLimit?: number;
+    displayName: string;
 };
 

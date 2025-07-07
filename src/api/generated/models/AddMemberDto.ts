@@ -4,6 +4,10 @@
 /* eslint-disable */
 export type AddMemberDto = {
     /**
+     * 用户UID
+     */
+    memberUid: string;
+    /**
      * 钱包成员别名
      */
     alias: string;

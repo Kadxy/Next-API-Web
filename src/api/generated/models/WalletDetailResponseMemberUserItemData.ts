@@ -2,18 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UpdateMemberDto = {
+export type WalletDetailResponseMemberUserItemData = {
     /**
      * 用户UID
      */
-    memberUid?: string;
+    uid: string;
     /**
-     * 钱包成员别名
+     * 用户显示名称
      */
-    alias?: string;
-    /**
-     * 额度限制
-     */
-    creditLimit?: number;
+    displayName: string;
 };
 

@@ -7,6 +7,7 @@ import Recharge from '../../pages/Recharge';
 import Access from '../../pages/Access';
 import FAQ from '../../pages/FAQ';
 import ModelList from '../../pages/ModelList';
+import Wallets from '../../pages/Wallets';
 import App from '../../App';
 import { createBrowserRouter } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -55,6 +56,14 @@ export const router = createBrowserRouter([
                     {
                         path: Path.MODEL_LIST,
                         element: <ModelList />,
+                    },
+                    {
+                        path: Path.WALLETS,
+                        element: <Wallets />,
+                    },
+                    {
+                        path: `${Path.WALLETS}/:uid`,
+                        element: <Wallets />,
                     },
                 ],
             },
