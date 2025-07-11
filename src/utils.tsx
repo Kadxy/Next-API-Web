@@ -1,7 +1,8 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
-import {Popover, Typography} from "@douyinfe/semi-ui";
+import {Avatar, Popover, Typography} from "@douyinfe/semi-ui";
+import {AvatarProps} from "@douyinfe/semi-ui/lib/es/avatar";
 
 
 // 注册插件
@@ -127,11 +128,25 @@ export const formatCredit = (creditDecimalString: string, inactived = false) => 
                     {string["6"]}
                 </Typography.Text>
             }
-            position={'rightBottomOver'}
+            position={'topRight'}
         >
             <Typography.Text {...inactived ? {type: 'tertiary', delete: true} : {style: {color}}} strong>
                 {string["2"]}
             </Typography.Text>
         </Popover>
+    )
+};
+
+// 获取默认头像
+export const getDefaultAvatar = (displayName: string, size?: AvatarProps['size']) => {
+    let nameStr = displayName.trim();
+    if (nameStr.length >= 4) {
+        nameStr = nameStr.substring(0, 1).toUpperCase()
+    }
+
+    return (
+        <Avatar size={size} color='amber'>
+            {nameStr}
+        </Avatar>
     )
 };

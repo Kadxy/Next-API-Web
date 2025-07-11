@@ -1,6 +1,7 @@
 import {FC, useEffect, useState} from 'react';
 import {
     Avatar,
+    Breadcrumb,
     Button,
     Card,
     Empty,
@@ -9,6 +10,7 @@ import {
     InputNumber,
     Modal,
     Space,
+    Spin,
     Table,
     Toast,
     Typography
@@ -32,11 +34,11 @@ import {
     WalletDetailResponseMemberItemData
 } from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {formatCredit, getErrorMsg} from '../../utils';
+import {formatCredit, getDefaultAvatar, getErrorMsg} from '../../utils';
 import {useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
-import {IllustrationFailure, IllustrationFailureDark} from "@douyinfe/semi-illustrations";
 import {ColumnProps} from "@douyinfe/semi-ui/lib/es/table/interface";
+import {IllustrationFailure, IllustrationFailureDark} from "@douyinfe/semi-illustrations";
 
 const {Title, Text} = Typography;
 
@@ -51,8 +53,6 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
     const [editMemberModalVisible, setEditMemberModalVisible] = useState(false);
     const [editingMember, setEditingMember] = useState<WalletDetailResponseMemberItemData | null>(null);
     const [editMemberFormData, setEditMemberFormData] = useState({alias: '', creditLimit: 0});
-
-    // Form api
 
     // 钱包名称编辑状态
     const [isEditingWalletName, setIsEditingWalletName] = useState(false);
@@ -205,25 +205,48 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
 
     // 移除成员
     const handleRemoveMember = async (member: WalletDetailResponseMemberItemData) => {
-        try {
-            await handleResponse(
-                getServerApi().wallet.walletControllerRemoveMember({
-                    walletUid,
-                    memberUid: member.user.uid
-                }),
-                {
-                    onSuccess: () => {
-                        Toast.success({content: '移除成员成功'});
-                        fetchWalletDetail();
-                    },
-                    onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
-                    }
+        Modal.warning({
+            title: '移除成员',
+            content: `确定要移除成员 "${member.user.displayName}" 吗？移除后该成员将无法访问此钱包。`,
+            onOk: async () => {
+                try {
+                    await handleResponse(
+                        getServerApi().wallet.walletControllerRemoveMember({
+                            walletUid,
+                            memberUid: member.user.uid
+                        }),
+                        {
+                            onSuccess: () => {
+                                Toast.success({content: '移除成员成功'});
+                                fetchWalletDetail();
+                            },
+                            onError: (errorMsg) => {
+                                Toast.error({content: errorMsg});
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Toast.error({content: getErrorMsg(error, '移除成员失败')});
                 }
-            );
-        } catch (error) {
-            Toast.error({content: getErrorMsg(error, '移除成员失败')});
-        }
+            },
+            cancelButtonProps: {theme: 'borderless'},
+            centered: true,
+        });
+    };
+
+    // 恢复成员
+    const handleRestoreMember = async (member: WalletDetailResponseMemberItemData) => {
+        Modal.warning({
+            title: '恢复成员',
+            content: `确定要恢复成员 "${member.user.displayName}" 的访问权限吗？`,
+            onOk: async () => await handleAddMember({
+                memberUid: member.user.uid,
+                alias: member.alias,
+                creditLimit: Number(0)
+            }),
+            cancelButtonProps: {theme: 'borderless'},
+            centered: true,
+        });
     };
 
     // 重置成员已用额度
@@ -273,18 +296,19 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             title: '成员信息',
             key: 'member',
             width: '25%',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => (
-                <Space>
-                    {record.user.avatar ?
-                        <Avatar size="extra-extra-small" src={record.user.avatar}/> :
-                        <Avatar size="extra-extra-small">{record.user.displayName.substring(0, 1)}</Avatar>
-                    }
-                    <Text strong>
-                        {record.user.displayName}<Text type='tertiary'>&nbsp;({record.alias})</Text>
-                    </Text>
-                </Space>
-
-            ),
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => {
+                return (
+                    <Space>
+                        {record.user.avatar ?
+                            <Avatar size="extra-extra-small" src={record.user.avatar}/> :
+                            getDefaultAvatar(record.user.displayName, 'extra-extra-small')
+                        }
+                        <Text strong>
+                            {record.user.displayName}<Text type='tertiary'>&nbsp;({record.alias})</Text>
+                        </Text>
+                    </Space>
+                )
+            }
         },
         {
             title: '额度限制',
@@ -337,17 +361,8 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                                 <Button
                                     icon={<IconDelete/>}
                                     type="danger"
-
                                     theme="borderless"
-                                    onClick={() => {
-                                        Modal.error({
-                                            title: '移除成员',
-                                            content: `确定要移除成员 "${record.user.displayName}" 吗？移除后该成员将无法访问此钱包。`,
-                                            onOk: () => handleRemoveMember(record),
-                                            cancelButtonProps: {theme: 'borderless'},
-                                            centered: true,
-                                        });
-                                    }}
+                                    onClick={() => handleRemoveMember(record)}
                                 >
                                     移除
                                 </Button>
@@ -356,11 +371,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                             <Button
                                 icon={<IconRedo/>}
                                 theme="borderless"
-                                onClick={() => handleAddMember({
-                                    memberUid: record.user.uid,
-                                    alias: record.alias,
-                                    creditLimit: Number(record.creditLimit)
-                                })}
+                                onClick={() => handleRestoreMember(record)}
                                 type='danger'
                             >
                                 恢复
@@ -372,9 +383,71 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
         },
     ];
 
+    if (!loading && !walletDetail) {
+        return (
+            <Card style={{width: '100%'}}>
+                <Space align='center' vertical style={{width: "100%"}} spacing='loose'>
+                    <Empty
+                        image={<IllustrationFailure style={{width: 150, height: 150}}/>}
+                        darkModeImage={<IllustrationFailureDark style={{width: 150, height: 150}}/>}
+                        title="钱包加载失败"
+                        description={`钱包UID: ${walletUid}`}
+                    />
+                    <Button onClick={handleBackToList} icon={<IconArrowLeft/>}>
+                        返回钱包列表
+                    </Button>
+                </Space>
+            </Card>
+        )
+    }
+
     return (
-        <>
+        <Spin spinning={loading} size='large'>
+            <Breadcrumb>
+                <Breadcrumb.Item onClick={handleBackToList}>
+                    钱包管理
+                </Breadcrumb.Item>
+                <Breadcrumb.Item>
+                    {walletDetail?.displayName || ''}
+                </Breadcrumb.Item>
+            </Breadcrumb>
             <Card
+                title={
+                    <Space>
+                        {isEditingWalletName ? (
+                                <>
+                                    <Input
+                                        value={newWalletName}
+                                        onChange={setNewWalletName}
+                                        placeholder="请输入钱包名称"
+                                        style={{width: 200}}
+                                        size='large'
+                                    />
+                                    {isSubmittingNewWalletName ? <IconSpin spin/> : (
+                                        <>
+                                            <IconTick
+                                                style={{cursor: 'pointer', color: '#52c41a'}}
+                                                onClick={async () => await handleEditWalletName("save")}
+                                            />
+                                            <IconClose
+                                                style={{cursor: 'pointer', color: '#ff4d4f'}}
+                                                onClick={async () => await handleEditWalletName("cancel")}
+                                            />
+                                        </>
+                                    )}
+                                </>
+                            )
+                            : (
+                                <>
+                                    <Title heading={3}>{walletDetail?.displayName || ''}</Title>
+                                    <IconEdit
+                                        style={{cursor: 'pointer'}}
+                                        onClick={async () => await handleEditWalletName("start")}
+                                    />
+                                </>
+                            )}
+                    </Space>
+                }
                 style={{
                     width: '100%',
                     height: '100%',
@@ -382,97 +455,37 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                     scrollbarWidth: 'none',
                 }}
                 bordered={false}
-                loading={loading}
+                headerExtraContent={
+                    <Button
+                        icon={<IconPlus/>}
+                        type="primary"
+                        onClick={() => setAddMemberModalVisible(true)}
+                    >
+                        添加成员
+                    </Button>
+                }
             >
-                {walletDetail ? (
-                    <>
-                        {/* 头部(导航栏) */}
-                        <Space style={{justifyContent: 'space-between', width: '100%'}}>
-                            <Button icon={<IconArrowLeft/>} onClick={handleBackToList}>
-                                返回钱包列表
-                            </Button>
-                            <Button
-                                icon={<IconPlus/>}
-                                type="primary"
-                                onClick={() => setAddMemberModalVisible(true)}
-                            >
-                                添加成员
-                            </Button>
-                        </Space>
-
-
-                        {/* 成员列表 */}
-                        <Table
-                            rowKey="uid"
-                            style={{marginTop: 8}}
-                            columns={columns}
-                            dataSource={walletDetail.members}
-                            pagination={false}
-                            empty={!loading && (
-                                <div style={{padding: "32px 0"}}>
-                                    <Typography.Text type='tertiary'>
-                                        该钱包无成员，你可以
-                                        <Typography.Text
-                                            link
-                                            onClick={() => setAddMemberModalVisible(true)}
-                                            type='tertiary'
-                                            style={{marginLeft: 1}}
-                                        >
-                                            添加成员
-                                        </Typography.Text>
-                                    </Typography.Text>
-                                </div>)}
-                            title={<Space style={{height: 28, paddingLeft: 16}}>
-                                {isEditingWalletName ? (
-                                        <>
-                                            <Input
-                                                value={newWalletName}
-                                                onChange={setNewWalletName}
-                                                placeholder="请输入钱包名称"
-                                                style={{width: 200}}
-                                                size='large'
-                                            />
-                                            {isSubmittingNewWalletName ? <IconSpin spin/> : (
-                                                <>
-                                                    <IconTick
-                                                        style={{cursor: 'pointer', color: '#52c41a'}}
-                                                        onClick={async () => await handleEditWalletName("save")}
-                                                    />
-                                                    <IconClose
-                                                        style={{cursor: 'pointer', color: '#ff4d4f'}}
-                                                        onClick={async () => await handleEditWalletName("cancel")}
-                                                    />
-                                                </>
-                                            )}
-                                        </>
-                                    )
-                                    : (
-                                        <>
-                                            <Title heading={3}>{walletDetail.displayName}</Title>
-                                            <IconEdit
-                                                style={{cursor: 'pointer'}}
-                                                onClick={async () => await handleEditWalletName("start")}
-                                            />
-                                        </>
-                                    )}
-                            </Space>}
-                        />
-                    </>
-                ) : (
-                    <Card style={{width: '100%'}}>
-                        <Space align='center' vertical style={{width: "100%"}} spacing='loose'>
-                            <Empty
-                                image={<IllustrationFailure style={{width: 150, height: 150}}/>}
-                                darkModeImage={<IllustrationFailureDark style={{width: 150, height: 150}}/>}
-                                title="钱包加载失败"
-                                description={`钱包UID: ${walletUid}`}
-                            />
-                            <Button onClick={handleBackToList} icon={<IconArrowLeft/>}>
-                                返回钱包列表
-                            </Button>
-                        </Space>
-                    </Card>
-                )}
+                <Table
+                    rowKey="uid"
+                    style={{marginTop: 8}}
+                    columns={columns}
+                    dataSource={walletDetail?.members || []}
+                    pagination={false}
+                    empty={!loading && (
+                        <div style={{padding: "32px 0"}}>
+                            <Typography.Text type='tertiary'>
+                                该钱包无成员，你可以
+                                <Typography.Text
+                                    link
+                                    onClick={() => setAddMemberModalVisible(true)}
+                                    type='tertiary'
+                                    style={{marginLeft: 1}}
+                                >
+                                    添加成员
+                                </Typography.Text>
+                            </Typography.Text>
+                        </div>)}
+                />
             </Card>
             <Modal
                 title="添加成员"
@@ -593,7 +606,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                     </div>
                 </Space>
             </Modal>
-        </>
+        </Spin>
     );
 };
 

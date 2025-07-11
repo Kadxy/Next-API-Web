@@ -1,22 +1,12 @@
-import { FC, useEffect, useRef, useState, useMemo } from 'react';
-import {
-    Card,
-    Typography,
-    Button,
-    Table,
-    Space,
-    Modal,
-    Toast,
-    Input,
-    Select,
-} from '@douyinfe/semi-ui';
-import { IconEdit, IconDelete } from '@douyinfe/semi-icons';
-import { ListApiKeyResponseItemData } from '../api/generated';
-import { getServerApi } from '../api/utils';
+import {FC, useEffect, useState} from 'react';
+import {Button, Card, Input, Modal, Select, Space, Table, Tag, Toast, Typography,} from '@douyinfe/semi-ui';
+import {IconDelete, IconEdit} from '@douyinfe/semi-icons';
+import {ListApiKeyResponseItemData} from '../api/generated';
+import {getServerApi} from '../api/utils';
 import dayjs from 'dayjs';
-import { getErrorMsg } from '../utils';
-import { ColumnProps } from '@douyinfe/semi-ui/lib/es/table/interface';
-import { getWalletsOption } from '../api/utils/wallets-option';
+import {getErrorMsg} from '../utils';
+import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
+import {getWalletsOption} from '../api/utils/wallets-option';
 
 const CREATE_SUCCESS_MESSAGE = '请将此 API key 保存在安全且易于访问的地方。您的 API key 不会以明文形式储存，因此你将无法再次查看它。';
 const DELETE_CONFIRM_MESSAGE = '该 API key 将立即被禁用。使用此密钥发出的 API 请求将被拒绝，这可能会导致仍然依赖它的任何系统崩溃。 一旦删除，你将无法再查看或修改此 API key。';
@@ -32,7 +22,7 @@ interface EditApiKeyModalProps extends ApiKeyModalProps {
     currentName: string;
 }
 
-const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }) => {
+const CreateApiKeyModal: FC<ApiKeyModalProps> = ({visible, onClose, onRefresh}) => {
     const [rawKey, setRawKey] = useState<string>('');
     const [displayName, setDisplayName] = useState<string>('');
     const [walletUid, setWalletUid] = useState<string>('');
@@ -42,14 +32,14 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
     useEffect(() => {
         getWalletsOption()
             .then(setWalletsOption)
-            .catch((msg) => Toast.error({ content: msg, stack: true }));
+            .catch((msg) => Toast.error({content: msg, stack: true}));
     }, []);
 
     const handleCreateApiKey = async () => {
         try {
             setCreating(true);
-            const { success, data, msg } = await getServerApi().apikey.apikeyControllerCreateApiKey({
-                requestBody: { displayName, walletUid }
+            const {success, data, msg} = await getServerApi().apikey.apikeyControllerCreateApiKey({
+                requestBody: {displayName, walletUid}
             });
             if (!success) {
                 throw new Error(msg);
@@ -68,8 +58,8 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
 
     const handleCopyApiKey = () => {
         navigator.clipboard.writeText(rawKey)
-            .then(() => Toast.success({ content: '复制成功', stack: true }))
-            .catch(() => Toast.error({ content: '复制失败，请手动复制', stack: true }));
+            .then(() => Toast.success({content: '复制成功', stack: true}))
+            .catch(() => Toast.error({content: '复制失败，请手动复制', stack: true}));
     }
 
     const SuccessComponent = () => {
@@ -79,7 +69,7 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                     {CREATE_SUCCESS_MESSAGE}
                 </Typography.Text>
 
-                <Space style={{ width: '100%' }}>
+                <Space style={{width: '100%'}}>
                     <Input
                         value={rawKey}
                         onFocus={(e) => e.target.select()}
@@ -99,28 +89,28 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
             onCancel={() => onClose(false)}
             centered
             {...(isSuccess ?
-                {
-                    okText: "复制",
-                    onOk: () => handleCopyApiKey(),
-                    cancelText: "关闭",
-                    cancelButtonProps: {
-                        theme: 'borderless'
-                    },
-                    width: 500,
-                    maskClosable: false,
-                    closeOnEsc: false,
-                    closable: false,
-                } :
-                {
-                    footer: false,
-                }
+                    {
+                        okText: "复制",
+                        onOk: () => handleCopyApiKey(),
+                        cancelText: "关闭",
+                        cancelButtonProps: {
+                            theme: 'borderless'
+                        },
+                        width: 500,
+                        maskClosable: false,
+                        closeOnEsc: false,
+                        closable: false,
+                    } :
+                    {
+                        footer: false,
+                    }
             )}
             afterClose={() => {
                 setRawKey('');
                 setDisplayName('');
             }}
         >
-            {rawKey ? <SuccessComponent /> : (
+            {rawKey ? <SuccessComponent/> : (
                 <Space
                     vertical
                     style={{
@@ -134,7 +124,7 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                         placeholder="输入 API key 名称"
                         value={displayName}
                         onChange={(value) => setDisplayName(value)}
-                        style={{ width: '100%' }}
+                        style={{width: '100%'}}
                         autoFocus
                     />
                     <Select
@@ -142,7 +132,7 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
                         value={walletUid}
                         onChange={(value) => setWalletUid(value as string)}
                         optionList={walletsOption}
-                        style={{ width: '100%' }}
+                        style={{width: '100%'}}
                         showClear
                     />
                     <Button
@@ -159,16 +149,16 @@ const CreateApiKeyModal: FC<ApiKeyModalProps> = ({ visible, onClose, onRefresh }
     )
 }
 
-const EditApiKeyModal: FC<EditApiKeyModalProps> = ({ visible, onClose, hashKey, currentName }) => {
+const EditApiKeyModal: FC<EditApiKeyModalProps> = ({visible, onClose, hashKey, currentName}) => {
     const [updating, setUpdating] = useState<boolean>(false);
     const [newDisplayName, setNewDisplayName] = useState<string>(currentName);
 
     const handleUpdateApiKey = async (newDisplayName: string) => {
         try {
             setUpdating(true);
-            const { success, msg } = await getServerApi().apikey.apikeyControllerUpdateApiKeyDisplayName({
+            const {success, msg} = await getServerApi().apikey.apikeyControllerUpdateApiKeyDisplayName({
                 hashKey,
-                requestBody: { displayName: newDisplayName }
+                requestBody: {displayName: newDisplayName}
             });
             if (!success) {
                 throw new Error(msg);
@@ -200,17 +190,19 @@ const EditApiKeyModal: FC<EditApiKeyModalProps> = ({ visible, onClose, hashKey, 
             cancelText='取消'
             confirmLoading={updating}
             centered
-            cancelButtonProps={{ theme: 'borderless' }}
+            cancelButtonProps={{theme: 'borderless'}}
         >
             <Input
                 placeholder="输入 API key 的名称"
                 value={newDisplayName}
                 onChange={(value) => setNewDisplayName(value)}
                 autoFocus
+                validateStatus={newDisplayName.length < 1 || newDisplayName.length > 15 ? 'error' : undefined}
             />
         </Modal>
     )
 }
+
 const ApiKeys: FC = () => {
     // User API Keys
     const [apiKeys, setApiKeys] = useState<ListApiKeyResponseItemData[]>([]);
@@ -226,26 +218,14 @@ const ApiKeys: FC = () => {
     const [editModalHashKey, setEditModalHashKey] = useState<string>('');
     const [editModalCurrentName, setEditModalCurrentName] = useState<string>('');
 
-    // 筛选
-    const [searchText, setSearchText] = useState<string>('');
-    const compositionRef = useRef({ isComposition: false });
-
     // 获取API服务
     const api = getServerApi();
-
-    // 过滤数据
-    const filteredApiKeys = useMemo(() => {
-        if (!searchText) return apiKeys;
-        return apiKeys.filter(item =>
-            item.displayName && item.displayName.includes(searchText)
-        );
-    }, [apiKeys, searchText]);
 
     // 加载API key列表
     const fetchApiKeys = async () => {
         setLoading(true);
         try {
-            const { success, data, msg } = await api.apikey.apikeyControllerGetApiKeys();
+            const {success, data, msg} = await api.apikey.apikeyControllerGetApiKeys();
             if (!success) {
                 throw new Error(msg);
             }
@@ -264,7 +244,7 @@ const ApiKeys: FC = () => {
             content: DELETE_CONFIRM_MESSAGE,
             onOk: async () => {
                 try {
-                    const { success, msg } = await api.apikey.apikeyControllerDeleteApiKey({ hashKey });
+                    const {success, msg} = await api.apikey.apikeyControllerDeleteApiKey({hashKey});
                     if (!success) {
                         throw new Error(msg);
                     }
@@ -274,7 +254,7 @@ const ApiKeys: FC = () => {
                     Toast.error(getErrorMsg(error, '删除失败'));
                 }
             },
-            cancelButtonProps: { theme: 'borderless' },
+            cancelButtonProps: {theme: 'borderless'},
             centered: true,
         });
     };
@@ -289,56 +269,54 @@ const ApiKeys: FC = () => {
     // 表格列配置
     const columns: ColumnProps<ListApiKeyResponseItemData>[] = [
         {
-            title: (
-                <Space>
-                    <span style={{ whiteSpace: 'nowrap' }}>名称</span>
-                    <Input
-                        placeholder="输入名称"
-                        style={{ width: 160 }}
-                        onCompositionStart={() => compositionRef.current.isComposition = true}
-                        onCompositionEnd={(event) => {
-                            compositionRef.current.isComposition = false;
-                            const value = event.currentTarget.value;
-                            setSearchText(value);
-                        }}
-                        onChange={(value) => {
-                            if (compositionRef.current.isComposition) {
-                                return;
-                            }
-                            setSearchText(value);
-                        }}
-                        showClear
-                    />
-                </Space>
-            ),
+            title: '名称',
             dataIndex: 'displayName',
             key: 'displayName',
-            width: "27.5%",
-            ellipsis: true,
+            width: "17.5%",
+            render: (text: string, record: ListApiKeyResponseItemData) => (
+                <Space>
+                    <Typography.Text type={!record.isActive ? 'quaternary' : undefined}>{text}</Typography.Text>
+                    {!record.isActive && <Tag
+                        color='red'
+                        shape='circle'
+                        type='ghost'
+                    >
+                        已失效
+                    </Tag>}
+                </Space>
+
+            ),
         },
         {
             title: '绑定钱包',
             key: 'wallet.displayName',
             dataIndex: 'wallet.displayName',
-            width: "20%",
+            width: "15%",
+            ellipsis: {showTitle: false},
         },
         {
             title: 'Key',
             dataIndex: 'preview',
             key: 'preview',
+            width: "15%",
             render: (text: string) => {
-                const rawKeyPreview = `sk-${text.slice(0, 4)}*****${text.slice(-4)}`;
-                return <Typography.Text style={{ letterSpacing: '0.5px' }}>{rawKeyPreview}</Typography.Text>
+                const rawKeyPreview = `sk-${text.slice(0, 4)}*******${text.slice(-4)}`;
+                return (
+                    <Typography.Text>
+                        {rawKeyPreview}
+                    </Typography.Text>
+                )
             },
-            width: "20%",
         },
         {
-            title: '创建日期',
+            title: '创建时间',
             dataIndex: 'createdAt',
             key: 'createdAt',
-            sorter: (a, b) => dayjs(a?.createdAt ?? 0).diff(dayjs(b?.createdAt ?? 0)),
-            render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
-            width: "20%",
+            width: "10%",
+            sorter:
+                (a, b) => dayjs(a?.createdAt ?? 0).diff(dayjs(b?.createdAt ?? 0)),
+            render:
+                (text: string) => dayjs(text).format('YYYY-MM-DD'),
         },
         {
             title: '上次使用',
@@ -346,15 +324,16 @@ const ApiKeys: FC = () => {
             key: 'lastUsedAt',
             sorter: (a, b) => dayjs(a?.lastUsedAt ?? 0).diff(dayjs(b?.lastUsedAt ?? 0)),
             render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-',
-            width: "20%",
+            width: "15%",
         },
         {
             title: '操作',
             key: 'action',
+            width: "15%",
             render: (_: unknown, record: ListApiKeyResponseItemData) => (
                 <Space>
                     <Button
-                        icon={<IconEdit />}
+                        icon={<IconEdit/>}
                         type="tertiary"
                         theme='borderless'
                         onClick={() => {
@@ -362,18 +341,22 @@ const ApiKeys: FC = () => {
                             setEditModalCurrentName(record.displayName);
                             setShowEditModal(true);
                         }}
+                        disabled={!record.isActive}
                         aria-label='编辑 API key'
-                    />
+                    >
+                        编辑
+                    </Button>
                     <Button
-                        icon={<IconDelete />}
+                        icon={<IconDelete/>}
                         type="danger"
                         theme="borderless"
                         onClick={() => handleDeleteApiKey(record.hashKey)}
                         aria-label='删除 API key'
-                    />
+                    >
+                        删除
+                    </Button>
                 </Space>
             ),
-            width: "12.5%",
         },
     ];
 
@@ -390,7 +373,7 @@ const ApiKeys: FC = () => {
             headerExtraContent={
                 <Button
                     onClick={() => setShowCreateModal(true)}
-                    style={{ margin: '-10px 0' }}
+                    style={{margin: '-10px 0'}}
                 >
                     创建 API key
                 </Button>
@@ -398,10 +381,10 @@ const ApiKeys: FC = () => {
         >
             <Table
                 columns={columns}
-                dataSource={filteredApiKeys}
+                dataSource={apiKeys}
                 loading={loading}
                 empty={!loading && (
-                    <div style={{ padding: "32px 0" }}>
+                    <div style={{padding: "32px 0"}}>
                         <Typography.Text type='tertiary'>
                             {apiKeys.length === 0 ? (
                                 <>
@@ -410,7 +393,7 @@ const ApiKeys: FC = () => {
                                         link
                                         onClick={() => setShowCreateModal(true)}
                                         type='tertiary'
-                                        style={{ marginLeft: 1 }}
+                                        style={{marginLeft: 1}}
                                     >
                                         创建一个
                                     </Typography.Text>

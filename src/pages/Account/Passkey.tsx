@@ -69,7 +69,7 @@ const PasskeyManager: FC = () => {
 
     // 删除通行密钥
     const handleDeletePasskey = async (id: string) => {
-        Modal.error({
+        Modal.confirm({
             title: '确定要删除这个通行密钥吗?',
             content: '删除后将无法使用此通行密钥登录',
             centered: true,
@@ -92,7 +92,7 @@ const PasskeyManager: FC = () => {
         });
     };
 
-    // 注册新的通行密钥
+    // 注册新通行密钥
     const handleRegisterPasskey = async () => {
         setIsRegistering(true);
         try {

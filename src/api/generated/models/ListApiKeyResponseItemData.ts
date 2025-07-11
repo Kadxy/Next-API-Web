@@ -9,7 +9,11 @@ export type ListApiKeyResponseItemData = {
      */
     hashKey: string;
     /**
-     * 前4位和后4位拼接的字符串, 如asidewsk即rawKey为asid***ewsk, 如果rawKey不足8位，则显示为rawKey的前4位
+     * 是否有效
+     */
+    isActive: boolean;
+    /**
+     * 前4位和后4位拼接的字符串, 如abc123xy即rawKey为sk-abc1**...**23xy
      */
     preview: string;
     /**

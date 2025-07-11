@@ -3,7 +3,7 @@ import {Avatar, Button, Card, Modal, Space, Table, Toast, Typography} from '@dou
 import {IconCreditCard, IconExit, IconSetting} from '@douyinfe/semi-icons';
 import {ListWalletResponseItemData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {formatCredit, getErrorMsg} from '../../utils';
+import {formatCredit, getDefaultAvatar, getErrorMsg} from '../../utils';
 import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
 import {useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
@@ -98,7 +98,7 @@ const WalletList: FC = () => {
                 <Space>
                     {record.owner.avatar ?
                         <Avatar size="extra-extra-small" src={record.owner.avatar}/> :
-                        <Avatar size="extra-extra-small">{record.owner.displayName.substring(0, 1)}</Avatar>
+                        getDefaultAvatar(record.owner.displayName, 'extra-extra-small')
                     }
                     <Text strong>
                         {record.owner.displayName}

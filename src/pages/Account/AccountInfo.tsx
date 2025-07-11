@@ -3,7 +3,7 @@ import {Avatar, Button, Card, Col, Input, Modal, Row, Space, Toast, Typography} 
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
 import {useAuth} from '../../lib/context/hooks';
-import {getDayjsEasyRead, getDayjsFormat, getErrorMsg} from '../../utils';
+import {getDayjsEasyRead, getDayjsFormat, getDefaultAvatar, getErrorMsg} from '../../utils';
 import {IconClose, IconEdit, IconSpin, IconTick} from "@douyinfe/semi-icons";
 import {getServerApi, handleResponse} from '../../api/utils';
 
@@ -98,9 +98,7 @@ const AccountInfo: FC = () => {
                         {user.avatar ? (
                             <Avatar style={{width: 48, height: 48}} shape="circle" src={user?.avatar}/>
                         ) : (
-                            <Avatar style={{width: 48, height: 48}} shape="circle">
-                                {user.displayName?.[0]?.toUpperCase()}
-                            </Avatar>
+                            getDefaultAvatar(user.displayName)
                         )}
                         {/* 用户名 和 UID */}
                         <Space vertical align="start">
