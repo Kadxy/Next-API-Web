@@ -1,25 +1,14 @@
 import {FC, useEffect, useState} from 'react';
-import {
-    Button,
-    Card,
-    Empty,
-    Form,
-    Input,
-    InputNumber,
-    Modal,
-    Popover,
-    Space,
-    Table,
-    Toast,
-    Typography
-} from '@douyinfe/semi-ui';
+import {Button, Card, Empty, Form, Input, InputNumber, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
 import {
     IconArrowLeft,
     IconClose,
     IconDelete,
     IconEdit,
     IconPlus,
+    IconRedo,
     IconRefresh,
+    IconSpin,
     IconTick,
     IconUser
 } from '@douyinfe/semi-icons';
@@ -31,10 +20,11 @@ import {
     WalletDetailResponseMemberItemData
 } from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {getErrorMsg} from '../../utils';
+import {formatCredit, getErrorMsg} from '../../utils';
 import {useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
 import {IllustrationFailure, IllustrationFailureDark} from "@douyinfe/semi-illustrations";
+import {ColumnProps} from "@douyinfe/semi-ui/lib/es/table/interface";
 
 const {Title, Text} = Typography;
 
@@ -54,6 +44,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
 
     // 钱包名称编辑状态
     const [isEditingWalletName, setIsEditingWalletName] = useState(false);
+    const [isSubmittingNewWalletName, setIsSubmittingNewWalletName] = useState(false);
     const [newWalletName, setNewWalletName] = useState('');
 
     const navigate = useNavigate();
@@ -109,6 +100,8 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                     return;
                 }
 
+                setIsSubmittingNewWalletName(true);
+
                 try {
                     const updateWalletDto: UpdateWalletDisplayNameDto = {
                         displayName: newWalletName.trim()
@@ -132,6 +125,8 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                     );
                 } catch (error) {
                     Toast.error({content: getErrorMsg(error, '更新钱包名称失败')});
+                } finally {
+                    setIsSubmittingNewWalletName(false);
                 }
                 break;
         }
@@ -261,105 +256,103 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
     };
 
     // 成员表格列定义
-    const memberColumns = [
+    const columns: ColumnProps<WalletDetailResponseMemberItemData>[] = [
         {
-            title: '用户名称',
+            title: '成员信息',
             key: 'member',
-            width: '40%',
+            width: '25%',
             render: (_: unknown, record: WalletDetailResponseMemberItemData) => (
                 <Space>
-                    <IconUser style={{color: 'var(--semi-color-primary)'}}/>
-                    <Popover
-                        style={{padding: 12}}
-                        content={
-                            <Text copyable>UID: {record.user.uid}</Text>
-                        }
-                        trigger="hover"
-                    >
-                        <Text strong>{record.user.displayName}<Text type='tertiary'>({record.alias})</Text></Text>
-                    </Popover>
+                    <IconUser
+                        style={{color: record.isActive ? 'rgba(var(--semi-teal-5), 1)' : 'rgba(var(--semi-grey-5), 1)'}}/>
+                    <Text strong>
+                        {record.user.displayName}<Text type='tertiary'>&nbsp;({record.alias})</Text>
+                    </Text>
                 </Space>
             ),
         },
         {
-            title: '额度信息',
-            key: 'credit',
-            width: '25%',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => {
-                const {creditLimit, creditUsed} = record;
-
-                const usageRatio = Number(creditUsed) / Number(creditLimit);
-
-                let textColor = undefined;
-                if (usageRatio >= 1) {
-                    textColor = 'var(--semi-color-danger)';
-                } else if (usageRatio >= 0.8) {
-                    textColor = 'var(--semi-color-warning)';
-                }
-
-                return <Text style={{color: textColor}}>${record.creditUsed} / ${record.creditLimit}</Text>
-            },
+            title: '额度限制',
+            key: 'creditLimit',
+            dataIndex: 'creditLimit',
+            width: "15%",
+            align: 'right',
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit)
+        },
+        {
+            title: '已用额度',
+            key: 'creditUsed',
+            width: "15%",
+            align: 'right',
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditUsed)
+        },
+        {
+            title: '剩余额度',
+            key: 'creditRemain',
+            width: "15%",
+            align: 'right',
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(String(Number(record.creditLimit) - Number(record.creditUsed)))
         },
         {
             title: '操作',
             key: 'actions',
-            width: '45%',
+            width: '30%',
+            align: 'right',
             render: (_: unknown, record: WalletDetailResponseMemberItemData) => {
-                if (!record.isActive) {
-                    return (
-                        <Space wrap>
+                return (
+                    <Space wrap>
+                        {record.isActive ? (
+                            <>
+                                <Button
+                                    icon={<IconEdit/>}
+                                    onClick={() => openEditMemberModal(record)}
+                                    theme="borderless"
+                                >
+                                    编辑
+                                </Button>
+                                <Button
+                                    icon={<IconRefresh/>}
+
+                                    onClick={() => handleResetCreditUsage(record)}
+                                    theme="borderless"
+                                    type="warning"
+                                >
+                                    重置
+                                </Button>
+                                <Button
+                                    icon={<IconDelete/>}
+                                    type="danger"
+
+                                    theme="borderless"
+                                    onClick={() => {
+                                        Modal.error({
+                                            title: '移除成员',
+                                            content: `确定要移除成员 "${record.user.displayName}" 吗？移除后该成员将无法访问此钱包。`,
+                                            onOk: () => handleRemoveMember(record),
+                                            cancelButtonProps: {theme: 'borderless'},
+                                            centered: true,
+                                        });
+                                    }}
+                                >
+                                    移除
+                                </Button>
+                            </>
+                        ) : (
                             <Button
-                                icon={<IconRefresh/>}
+                                icon={<IconRedo/>}
                                 theme="borderless"
                                 onClick={() => handleAddMember({
                                     memberUid: record.user.uid,
                                     alias: record.alias,
                                     creditLimit: Number(record.creditLimit)
                                 })}
+                                type='danger'
                             >
-                                重新添加
+                                恢复
                             </Button>
-                        </Space>
-                    );
-                }
-                return (
-                    <Space wrap>
-                        <Button
-                            icon={<IconEdit/>}
-                            size="small"
-                            onClick={() => openEditMemberModal(record)}
-                            theme="borderless"
-                        >
-                            编辑
-                        </Button>
-                        <Button
-                            icon={<IconRefresh/>}
-                            size="small"
-                            onClick={() => handleResetCreditUsage(record)}
-                            theme="borderless"
-                            type="warning"
-                        >
-                            重置额度
-                        </Button>
-                        <Button
-                            icon={<IconDelete/>}
-                            type="danger"
-                            size="small"
-                            theme="borderless"
-                            onClick={() => {
-                                Modal.error({
-                                    title: '移除成员',
-                                    content: `确定要移除成员 "${record.user.displayName}" 吗？移除后该成员将无法访问此钱包。`,
-                                    onOk: () => handleRemoveMember(record),
-                                    cancelButtonProps: {theme: 'borderless'},
-                                    centered: true,
-                                });
-                            }}
-                        >
-                            移除
-                        </Button>
+                        )}
                     </Space>
-                );
+                )
             },
         },
     ];
@@ -392,62 +385,63 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                             </Button>
                         </Space>
 
-                        {/* 中部 */}
-                        <div style={{marginTop: 24}}>
-                            {/* 钱包信息 */}
-                            <Space vertical align="start" style={{width: '100%'}}>
-                                {/*名称*/}
-                                {isEditingWalletName ? (
-                                    <Space>
-                                        <Input
-                                            value={newWalletName}
-                                            onChange={setNewWalletName}
-                                            placeholder="请输入钱包名称"
-                                            style={{width: 200}}
-                                        />
-                                        <IconTick
-                                            style={{cursor: 'pointer', color: '#52c41a'}}
-                                            onClick={async () => await handleEditWalletName("save")}
-                                        />
-                                        <IconClose
-                                            style={{cursor: 'pointer', color: '#ff4d4f'}}
-                                            onClick={async () => await handleEditWalletName("cancel")}
 
-                                        />
-                                    </Space>
-                                ) : (
-                                    <Space>
-                                        <Title heading={3}>{walletDetail.displayName}</Title>
-                                        <IconEdit
-                                            style={{cursor: 'pointer'}}
-                                            onClick={async () => await handleEditWalletName("start")}
-                                        />
-                                    </Space>
-                                )}
-                            </Space>
-
-                            {/* 成员列表 */}
-                            <Table
-                                rowKey="uid"
-                                columns={memberColumns}
-                                dataSource={walletDetail.members}
-                                pagination={false}
-                                empty={!loading && (
-                                    <div style={{padding: "32px 0"}}>
-                                        <Typography.Text type='tertiary'>
-                                            该钱包无成员，你可以
-                                            <Typography.Text
-                                                link
-                                                onClick={() => setAddMemberModalVisible(true)}
-                                                type='tertiary'
-                                                style={{marginLeft: 1}}
-                                            >
-                                                添加成员
-                                            </Typography.Text>
+                        {/* 成员列表 */}
+                        <Table
+                            rowKey="uid"
+                            style={{marginTop: 8}}
+                            columns={columns}
+                            dataSource={walletDetail.members}
+                            pagination={false}
+                            empty={!loading && (
+                                <div style={{padding: "32px 0"}}>
+                                    <Typography.Text type='tertiary'>
+                                        该钱包无成员，你可以
+                                        <Typography.Text
+                                            link
+                                            onClick={() => setAddMemberModalVisible(true)}
+                                            type='tertiary'
+                                            style={{marginLeft: 1}}
+                                        >
+                                            添加成员
                                         </Typography.Text>
-                                    </div>)}
-                            />
-                        </div>
+                                    </Typography.Text>
+                                </div>)}
+                            title={<Space style={{height: 28, paddingLeft: 16}}>
+                                {isEditingWalletName ? (
+                                        <>
+                                            <Input
+                                                value={newWalletName}
+                                                onChange={setNewWalletName}
+                                                placeholder="请输入钱包名称"
+                                                style={{width: 200}}
+                                                size='large'
+                                            />
+                                            {isSubmittingNewWalletName ? <IconSpin spin/> : (
+                                                <>
+                                                    <IconTick
+                                                        style={{cursor: 'pointer', color: '#52c41a'}}
+                                                        onClick={async () => await handleEditWalletName("save")}
+                                                    />
+                                                    <IconClose
+                                                        style={{cursor: 'pointer', color: '#ff4d4f'}}
+                                                        onClick={async () => await handleEditWalletName("cancel")}
+                                                    />
+                                                </>
+                                            )}
+                                        </>
+                                    )
+                                    : (
+                                        <>
+                                            <Title heading={3}>{walletDetail.displayName}</Title>
+                                            <IconEdit
+                                                style={{cursor: 'pointer'}}
+                                                onClick={async () => await handleEditWalletName("start")}
+                                            />
+                                        </>
+                                    )}
+                            </Space>}
+                        />
                     </>
                 ) : (
                     <Card style={{width: '100%'}}>
@@ -533,7 +527,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                             style={{marginTop: 8}}
                             showClear
                         />
-                        <Typography.Text size="small" type="tertiary" style={{marginTop: 4, display: 'block'}}>
+                        <Typography.Text type="tertiary" style={{marginTop: 4, display: 'block'}}>
                             为该成员设置一个易于识别的别名
                         </Typography.Text>
                     </div>
@@ -555,7 +549,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                             parser={value => value!.replace(/\$\s?|(,*)/g, '')}
                             style={{marginTop: 8, width: '100%'}}
                         />
-                        <Typography.Text size="small" type="tertiary" style={{marginTop: 4, display: 'block'}}>
+                        <Typography.Text type="tertiary" style={{marginTop: 4, display: 'block'}}>
                             设置该成员的最大使用额度（美元）
                         </Typography.Text>
                     </div>

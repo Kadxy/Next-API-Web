@@ -22,10 +22,10 @@ export type ListWalletResponseItemData = {
     /**
      * 钱包成员额度限制, isOwner=false 时展示
      */
-    creditLimit: number;
+    creditLimit: string;
     /**
      * 钱包成员已使用额度, isOwner=false 时展示
      */
-    creditUsed: number;
+    creditUsed: string;
 };
 

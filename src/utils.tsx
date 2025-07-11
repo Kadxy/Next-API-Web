@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
+import {Popover, Typography} from "@douyinfe/semi-ui";
+
 
 // 注册插件
 dayjs.extend(relativeTime);
@@ -49,7 +51,7 @@ export const getDayjsFormat = (
     if (!dateObj.isValid()) {
         return fallback;
     }
-    
+
     const result = dateObj.format(format);
     if (result === 'Invalid Date') {
         return fallback;
@@ -82,7 +84,7 @@ export const formatRelativeTime = (
     }
 
     const diff = dayjs().diff(dateObj, "day");
-    
+
     // 如果时间差小于7天，使用相对时间，否则显示具体日期
     if (diff < 7) {
         return dateObj.fromNow();
@@ -96,4 +98,41 @@ export const getDayjsEasyRead = formatRelativeTime;
 
 export const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// 格式化额度
+export const formatCredit = (creditDecimalString: string, warningCredit = -1) => {
+    if (!creditDecimalString) {
+        return <Typography.Text strong type="secondary">
+            -
+        </Typography.Text>
+    }
+    const NEGATIVE_COLOR = 'var(--semi-color-danger)';
+    const WARNING_COLOR = 'var(--semi-color-warning)';
+
+    const credit = parseFloat(creditDecimalString);
+    const isNegative = credit < 0;
+
+    const absolute = Math.abs(credit);
+    const string = {
+        2: `${isNegative ? '-$' : '$'}${absolute.toFixed(2)}`,
+        6: `${isNegative ? '-$' : '$'}${absolute.toFixed(6)}`,
+    }
+    const color = isNegative ? NEGATIVE_COLOR : (warningCredit > 0 && absolute < warningCredit) ? WARNING_COLOR : undefined;
+
+    return (
+        <Popover
+            style={{padding: '6px 8px'}}
+            content={
+                <Typography.Text strong style={{color}}>
+                    {string["6"]}
+                </Typography.Text>
+            }
+            position={'rightBottomOver'}
+        >
+            <Typography.Text strong style={{color}}>
+                {string["2"]}
+            </Typography.Text>
+        </Popover>
+    )
 };

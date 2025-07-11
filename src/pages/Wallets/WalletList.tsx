@@ -1,9 +1,9 @@
 import {FC, useEffect, useState} from 'react';
 import {Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
-import {IconCreditCard, IconCrown, IconExit, IconMore} from '@douyinfe/semi-icons';
+import {IconCreditCard, IconExit, IconSetting} from '@douyinfe/semi-icons';
 import {ListWalletResponseItemData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {getErrorMsg} from '../../utils';
+import {formatCredit, getErrorMsg} from '../../utils';
 import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
 import {useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
@@ -78,84 +78,67 @@ const WalletList: FC = () => {
     const columns: ColumnProps<ListWalletResponseItemData>[] = [
         {
             title: '钱包名称',
-            dataIndex: 'displayName',
             key: 'displayName',
-            width: "40%",
-            ellipsis: true,
-            render: (text: string, record: ListWalletResponseItemData) => (
+            width: "25%",
+            render: (_:unknown, record: ListWalletResponseItemData) => (
                 <Space>
-                    <IconCreditCard style={{color: 'var(--semi-color-primary)'}}/>
-                    <Text strong>{text}</Text>
-                    {record.isOwner && (
-                        <IconCrown style={{color: 'var(--semi-color-warning)', fontSize: '14px'}}/>
-                    )}
+                    <IconCreditCard style={{color: record.isOwner ? 'rgba(var(--semi-amber-5), 1)' : 'rgba(var(--semi-grey-5), 1)'}}/>
+                    <Text strong>
+                        {record.displayName}
+                    </Text>
                 </Space>
             ),
         },
-
         {
-            title: '余额',
+            title: '钱包余额',
             dataIndex: 'balance',
             key: 'balance',
             width: "20%",
-            render: (balance: string) => (
-                <Text strong>${balance}</Text>
-            ),
+            align: 'right',
+            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.balance)
         },
         {
-            title: '额度信息',
-            key: 'credit',
-            width: "25%",
-            render: (_: unknown, record: ListWalletResponseItemData) => {
-                if (record.isOwner) {
-                    return <Text type="tertiary">-</Text>;
-                }
-                const creditLimit = parseFloat(String(record.creditLimit || 0));
-                const creditUsed = parseFloat(String(record.creditUsed || 0));
-                const usageRatio = creditLimit > 0 ? creditUsed / creditLimit : 0;
-
-                let textColor = 'var(--semi-color-text-0)';
-                if (usageRatio >= 1) {
-                    textColor = 'var(--semi-color-danger)';
-                } else if (usageRatio >= 0.8) {
-                    textColor = 'var(--semi-color-warning)';
-                }
-
-                return (
-                    <div style={{textAlign: 'left'}}>
-                        <Text size="small" style={{color: textColor}}>
-                            ${record.creditUsed || 0} / ${record.creditLimit || 0}
-                        </Text>
-                    </div>
-                );
-            },
+            title: '已用额度',
+            key: 'creditUsed',
+            width: "20%",
+            align: 'right',
+            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditUsed)
+        },
+        {
+            title: '额度限制',
+            key: 'creditLimit',
+            dataIndex: 'creditLimit',
+            width: "20%",
+            align: 'right',
+            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit)
         },
         {
             title: '操作',
             key: 'actions',
             width: "15%",
+            align: 'center',
             render: (_: unknown, record: ListWalletResponseItemData) => (
                 <Space>
                     {record.isOwner ? (
                         <Button
-                            icon={<IconMore/>}
+                            icon={<IconSetting/>}
                             onClick={() => handleViewDetail(record)}
                             theme="borderless"
                             type="primary"
-                            size="small"
                         >
                             管理
                         </Button>
                     ) : (
-                        <Button
-                            icon={<IconExit/>}
-                            onClick={() => handleLeaveWallet(record.uid, record.displayName)}
-                            theme="borderless"
-                            type="danger"
-                            size="small"
-                        >
-                            离开
-                        </Button>
+                        <>
+                            <Button
+                                icon={<IconExit/>}
+                                onClick={() => handleLeaveWallet(record.uid, record.displayName)}
+                                theme="borderless"
+                                type="danger"
+                            >
+                                离开
+                            </Button>
+                        </>
                     )}
                 </Space>
             ),
