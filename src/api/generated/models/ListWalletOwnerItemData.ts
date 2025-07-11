@@ -2,17 +2,17 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type WalletDetailResponseMemberUserItemData = {
+export type ListWalletOwnerItemData = {
     /**
-     * 钱包成员唯一标识符
+     * 钱包所有者唯一标识符
      */
     uid: string;
     /**
-     * 钱包成员名称
+     * 钱包所有者名称
      */
     displayName: string;
     /**
-     * 钱包成员头像地址
+     * 钱包所有者头像地址
      */
     avatar: string;
 };

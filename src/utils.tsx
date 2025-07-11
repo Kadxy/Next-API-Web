@@ -101,14 +101,13 @@ export const isValidEmail = (email: string) => {
 };
 
 // 格式化额度
-export const formatCredit = (creditDecimalString: string, warningCredit = -1) => {
+export const formatCredit = (creditDecimalString: string, inactived = false) => {
     if (!creditDecimalString) {
         return <Typography.Text strong type="secondary">
             -
         </Typography.Text>
     }
     const NEGATIVE_COLOR = 'var(--semi-color-danger)';
-    const WARNING_COLOR = 'var(--semi-color-warning)';
 
     const credit = parseFloat(creditDecimalString);
     const isNegative = credit < 0;
@@ -118,11 +117,11 @@ export const formatCredit = (creditDecimalString: string, warningCredit = -1) =>
         2: `${isNegative ? '-$' : '$'}${absolute.toFixed(2)}`,
         6: `${isNegative ? '-$' : '$'}${absolute.toFixed(6)}`,
     }
-    const color = isNegative ? NEGATIVE_COLOR : (warningCredit > 0 && absolute < warningCredit) ? WARNING_COLOR : undefined;
+    const color = isNegative ? NEGATIVE_COLOR : undefined;
 
     return (
         <Popover
-            style={{padding: '6px 8px'}}
+            style={{...inactived ? {display: 'none'} : {}, padding: '6px 8px'}}
             content={
                 <Typography.Text strong style={{color}}>
                     {string["6"]}
@@ -130,7 +129,7 @@ export const formatCredit = (creditDecimalString: string, warningCredit = -1) =>
             }
             position={'rightBottomOver'}
         >
-            <Typography.Text strong style={{color}}>
+            <Typography.Text {...inactived ? {type: 'tertiary', delete: true} : {style: {color}}} strong>
                 {string["2"]}
             </Typography.Text>
         </Popover>

@@ -26,6 +26,7 @@ export type { ListApiKeyResponseItemData } from './models/ListApiKeyResponseItem
 export type { ListApiKeyResponseItemWalletItemData } from './models/ListApiKeyResponseItemWalletItemData';
 export type { ListPasskeysResponseData } from './models/ListPasskeysResponseData';
 export type { ListPasskeysResponseDto } from './models/ListPasskeysResponseDto';
+export type { ListWalletOwnerItemData } from './models/ListWalletOwnerItemData';
 export type { ListWalletResponseDto } from './models/ListWalletResponseDto';
 export type { ListWalletResponseItemData } from './models/ListWalletResponseItemData';
 export type { LoginResponseData } from './models/LoginResponseData';

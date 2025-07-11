@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ListWalletOwnerItemData } from './ListWalletOwnerItemData';
 export type ListWalletResponseItemData = {
     /**
      * 是否所有者
@@ -27,5 +28,9 @@ export type ListWalletResponseItemData = {
      * 钱包成员已使用额度, isOwner=false 时展示
      */
     creditUsed: string;
+    /**
+     * 钱包所有者信息
+     */
+    owner: ListWalletOwnerItemData;
 };
 

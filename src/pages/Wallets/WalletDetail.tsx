@@ -1,5 +1,18 @@
 import {FC, useEffect, useState} from 'react';
-import {Button, Card, Empty, Form, Input, InputNumber, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
+import {
+    Avatar,
+    Button,
+    Card,
+    Empty,
+    Form,
+    Input,
+    InputNumber,
+    Modal,
+    Space,
+    Table,
+    Toast,
+    Typography
+} from '@douyinfe/semi-ui';
 import {
     IconArrowLeft,
     IconClose,
@@ -9,8 +22,7 @@ import {
     IconRedo,
     IconRefresh,
     IconSpin,
-    IconTick,
-    IconUser
+    IconTick
 } from '@douyinfe/semi-icons';
 import {
     AddMemberDto,
@@ -263,12 +275,15 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             width: '25%',
             render: (_: unknown, record: WalletDetailResponseMemberItemData) => (
                 <Space>
-                    <IconUser
-                        style={{color: record.isActive ? 'rgba(var(--semi-teal-5), 1)' : 'rgba(var(--semi-grey-5), 1)'}}/>
+                    {record.user.avatar ?
+                        <Avatar size="extra-extra-small" src={record.user.avatar}/> :
+                        <Avatar size="extra-extra-small">{record.user.displayName.substring(0, 1)}</Avatar>
+                    }
                     <Text strong>
                         {record.user.displayName}<Text type='tertiary'>&nbsp;({record.alias})</Text>
                     </Text>
                 </Space>
+
             ),
         },
         {
@@ -277,21 +292,21 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             dataIndex: 'creditLimit',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit)
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit, !record.isActive),
         },
         {
             title: '已用额度',
             key: 'creditUsed',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditUsed)
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditUsed, !record.isActive)
         },
         {
             title: '剩余额度',
             key: 'creditRemain',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(String(Number(record.creditLimit) - Number(record.creditUsed)))
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(String(Number(record.creditLimit) - Number(record.creditUsed)), !record.isActive)
         },
         {
             title: '操作',

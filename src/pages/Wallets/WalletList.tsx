@@ -1,5 +1,5 @@
 import {FC, useEffect, useState} from 'react';
-import {Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
+import {Avatar, Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
 import {IconCreditCard, IconExit, IconSetting} from '@douyinfe/semi-icons';
 import {ListWalletResponseItemData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
@@ -77,12 +77,13 @@ const WalletList: FC = () => {
     // 表格列定义
     const columns: ColumnProps<ListWalletResponseItemData>[] = [
         {
-            title: '钱包名称',
+            title: '名称',
             key: 'displayName',
             width: "25%",
-            render: (_:unknown, record: ListWalletResponseItemData) => (
+            render: (_: unknown, record: ListWalletResponseItemData) => (
                 <Space>
-                    <IconCreditCard style={{color: record.isOwner ? 'rgba(var(--semi-amber-5), 1)' : 'rgba(var(--semi-grey-5), 1)'}}/>
+                    <IconCreditCard
+                        style={{color: record.isOwner ? 'rgba(var(--semi-amber-5), 1)' : 'var( --semi-color-primary)'}}/>
                     <Text strong>
                         {record.displayName}
                     </Text>
@@ -90,17 +91,33 @@ const WalletList: FC = () => {
             ),
         },
         {
-            title: '钱包余额',
+            title: '所有者',
+            key: 'owner',
+            width: "15%",
+            render: (_: unknown, record: ListWalletResponseItemData) => (
+                <Space>
+                    {record.owner.avatar ?
+                        <Avatar size="extra-extra-small" src={record.owner.avatar}/> :
+                        <Avatar size="extra-extra-small">{record.owner.displayName.substring(0, 1)}</Avatar>
+                    }
+                    <Text strong>
+                        {record.owner.displayName}
+                    </Text>
+                </Space>
+            ),
+        },
+        {
+            title: '余额',
             dataIndex: 'balance',
             key: 'balance',
-            width: "20%",
+            width: "15%",
             align: 'right',
             render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.balance)
         },
         {
             title: '已用额度',
             key: 'creditUsed',
-            width: "20%",
+            width: "15%",
             align: 'right',
             render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditUsed)
         },
@@ -108,7 +125,7 @@ const WalletList: FC = () => {
             title: '额度限制',
             key: 'creditLimit',
             dataIndex: 'creditLimit',
-            width: "20%",
+            width: "15%",
             align: 'right',
             render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit)
         },
