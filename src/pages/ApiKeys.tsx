@@ -272,7 +272,7 @@ const ApiKeys: FC = () => {
             title: '名称',
             dataIndex: 'displayName',
             key: 'displayName',
-            width: "17.5%",
+            width: "22.5%",
             render: (text: string, record: ListApiKeyResponseItemData) => (
                 <Space>
                     <Typography.Text type={!record.isActive ? 'quaternary' : undefined}>{text}</Typography.Text>
@@ -291,7 +291,7 @@ const ApiKeys: FC = () => {
             title: '绑定钱包',
             key: 'wallet.displayName',
             dataIndex: 'wallet.displayName',
-            width: "15%",
+            width: "12.5%",
             ellipsis: {showTitle: false},
         },
         {

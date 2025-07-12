@@ -59,6 +59,10 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
     const [isSubmittingNewWalletName, setIsSubmittingNewWalletName] = useState(false);
     const [newWalletName, setNewWalletName] = useState('');
 
+    // 搜索用户autoComplete data
+    const [searchingUser, setSearchingUser] = useState<boolean>(false);
+    const [searchUserOptions, setSearchUserOptions] = useState<{ label: string; value: string, avatar: string }[]>([]);
+
     const navigate = useNavigate();
 
     // 初始化加载钱包详情
@@ -144,90 +148,60 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
         }
     }
 
-    // 添加成员
-    const handleAddMember = async (values: AddMemberDto) => {
-        try {
-
-            await handleResponse(
-                getServerApi().wallet.walletControllerAddMember({walletUid, requestBody: values}),
-                {
-                    onSuccess: () => {
-                        Toast.success({content: '添加成员成功'});
-                        setAddMemberModalVisible(false);
-                        fetchWalletDetail();
-                    },
-                    onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
-                    }
-                }
-            );
-        } catch (error) {
-            Toast.error({content: getErrorMsg(error, '添加成员失败')});
-        }
-    };
-
-    // 更新成员
+    // FIXME: 更新成员
     const handleUpdateMember = async () => {
         if (!editingMember || !editMemberFormData.alias || editMemberFormData.creditLimit <= 0) {
             Toast.error({content: '请填写完整的成员信息'});
             return;
         }
 
-        try {
-            const updateMemberDto: UpdateMemberDto = {
-                alias: editMemberFormData.alias,
-                creditLimit: editMemberFormData.creditLimit
-            };
+        const updateMemberDto: UpdateMemberDto = {
+            alias: editMemberFormData.alias,
+            creditLimit: editMemberFormData.creditLimit
+        };
 
-            await handleResponse(
-                getServerApi().wallet.walletControllerUpdateMember({
-                    walletUid,
-                    memberUid: editingMember.user.uid,
-                    requestBody: updateMemberDto
-                }),
-                {
-                    onSuccess: () => {
-                        Toast.success({content: '更新成员成功'});
-                        setEditMemberModalVisible(false);
-                        setEditingMember(null);
-                        setEditMemberFormData({alias: '', creditLimit: 0});
-                        fetchWalletDetail();
-                    },
-                    onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
-                    }
+        await handleResponse(
+            getServerApi().wallet.walletControllerUpdateMember({
+                walletUid,
+                memberUid: editingMember.user.uid,
+                requestBody: updateMemberDto
+            }),
+            {
+                onSuccess: () => {
+                    Toast.success({content: '更新成员成功'});
+                    setEditMemberModalVisible(false);
+                    setEditingMember(null);
+                    setEditMemberFormData({alias: '', creditLimit: 0});
+                    fetchWalletDetail();
+                },
+                onError: (errorMsg) => {
+                    Toast.error({content: errorMsg});
                 }
-            );
-        } catch (error) {
-            Toast.error({content: getErrorMsg(error, '更新成员失败')});
-        }
+            }
+        );
     };
 
     // 移除成员
     const handleRemoveMember = async (member: WalletDetailResponseMemberItemData) => {
         Modal.warning({
             title: '移除成员',
-            content: `确定要移除成员 "${member.user.displayName}" 吗？移除后该成员将无法访问此钱包。`,
+            content: `确定要移除成员 "${member.user.displayName}" 吗？移除后该成员将无法访问此钱包，绑定到此钱包的资源将被禁用。`,
             onOk: async () => {
-                try {
-                    await handleResponse(
-                        getServerApi().wallet.walletControllerRemoveMember({
-                            walletUid,
-                            memberUid: member.user.uid
-                        }),
-                        {
-                            onSuccess: () => {
-                                Toast.success({content: '移除成员成功'});
-                                fetchWalletDetail();
-                            },
-                            onError: (errorMsg) => {
-                                Toast.error({content: errorMsg});
-                            }
+                await handleResponse(
+                    getServerApi().wallet.walletControllerRemoveMember({
+                        walletUid,
+                        memberUid: member.user.uid
+                    }),
+                    {
+                        onSuccess: () => {
+                            Toast.success({content: '移除成员成功'});
+                            fetchWalletDetail();
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({content: errorMsg});
                         }
-                    );
-                } catch (error) {
-                    Toast.error({content: getErrorMsg(error, '移除成员失败')});
-                }
+                    }
+                );
             },
             cancelButtonProps: {theme: 'borderless'},
             centered: true,
@@ -238,12 +212,22 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
     const handleRestoreMember = async (member: WalletDetailResponseMemberItemData) => {
         Modal.warning({
             title: '恢复成员',
-            content: `确定要恢复成员 "${member.user.displayName}" 的访问权限吗？`,
-            onOk: async () => await handleAddMember({
-                memberUid: member.user.uid,
-                alias: member.alias,
-                creditLimit: Number(0)
-            }),
+            content: `确定要恢复成员 "${member.user.displayName}" 的访问权限吗？这将重置该成员的已用额度和可用额度。`,
+            onOk: async () => {
+                await handleResponse(
+                    getServerApi().wallet.walletControllerReactivateMember({walletUid, memberUid: member.user.uid}),
+                    {
+                        onSuccess: () => {
+                            Toast.success({content: '添加成员成功'});
+                            setAddMemberModalVisible(false);
+                            fetchWalletDetail();
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({content: errorMsg});
+                        }
+                    }
+                );
+            },
             cancelButtonProps: {theme: 'borderless'},
             centered: true,
         });
@@ -255,25 +239,21 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             title: '重置已用额度',
             content: `确定要重置成员 "${member.user.displayName}" 的已用额度吗？此操作将清零该成员的已用额度。`,
             onOk: async () => {
-                try {
-                    await handleResponse(
-                        getServerApi().wallet.walletControllerResetCreditUsage({
-                            walletUid,
-                            memberUid: member.user.uid
-                        }),
-                        {
-                            onSuccess: () => {
-                                Toast.success({content: '重置已用额度成功'});
-                                fetchWalletDetail();
-                            },
-                            onError: (errorMsg) => {
-                                Toast.error({content: errorMsg});
-                            }
+                await handleResponse(
+                    getServerApi().wallet.walletControllerResetCreditUsage({
+                        walletUid,
+                        memberUid: member.user.uid
+                    }),
+                    {
+                        onSuccess: () => {
+                            Toast.success({content: '重置已用额度成功'});
+                            fetchWalletDetail();
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({content: errorMsg});
                         }
-                    );
-                } catch (error) {
-                    Toast.error({content: getErrorMsg(error, '重置已用额度失败')});
-                }
+                    }
+                );
             },
             cancelButtonProps: {theme: 'borderless'},
             centered: true,
@@ -316,7 +296,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             dataIndex: 'creditLimit',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit, !record.isActive),
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit, !record.isActive,true),
         },
         {
             title: '已用额度',
@@ -339,7 +319,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             align: 'right',
             render: (_: unknown, record: WalletDetailResponseMemberItemData) => {
                 return (
-                    <Space wrap>
+                    <Space>
                         {record.isActive ? (
                             <>
                                 <Button
@@ -351,10 +331,9 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                                 </Button>
                                 <Button
                                     icon={<IconRefresh/>}
-
                                     onClick={() => handleResetCreditUsage(record)}
                                     theme="borderless"
-                                    type="warning"
+                                    type='warning'
                                 >
                                     重置
                                 </Button>
@@ -372,7 +351,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                                 icon={<IconRedo/>}
                                 theme="borderless"
                                 onClick={() => handleRestoreMember(record)}
-                                type='danger'
+                                type='tertiary'
                             >
                                 恢复
                             </Button>
@@ -420,17 +399,15 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                                         value={newWalletName}
                                         onChange={setNewWalletName}
                                         placeholder="请输入钱包名称"
-                                        style={{width: 200}}
-                                        size='large'
                                     />
                                     {isSubmittingNewWalletName ? <IconSpin spin/> : (
                                         <>
                                             <IconTick
-                                                style={{cursor: 'pointer', color: '#52c41a'}}
+                                                style={{cursor: 'pointer', color: 'var( --semi-color-success)'}}
                                                 onClick={async () => await handleEditWalletName("save")}
                                             />
                                             <IconClose
-                                                style={{cursor: 'pointer', color: '#ff4d4f'}}
+                                                style={{cursor: 'pointer', color: 'var( --semi-color-danger)'}}
                                                 onClick={async () => await handleEditWalletName("cancel")}
                                             />
                                         </>
@@ -439,7 +416,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                             )
                             : (
                                 <>
-                                    <Title heading={3}>{walletDetail?.displayName || ''}</Title>
+                                    <Title heading={4}>{walletDetail?.displayName || ''}</Title>
                                     <IconEdit
                                         style={{cursor: 'pointer'}}
                                         onClick={async () => await handleEditWalletName("start")}
@@ -491,20 +468,78 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                 title="添加成员"
                 visible={addMemberModalVisible}
                 onCancel={() => setAddMemberModalVisible(false)}
-                width={360}
+                width={400}
                 footer={null}
                 centered
             >
-                <Form
+                <Form<AddMemberDto>
                     style={{margin: '0 8px 24px 8px'}}
-                    onSubmit={values => handleAddMember(values)}
+                    onSubmit={async (requestBody) => {
+                        await handleResponse(
+                            getServerApi().wallet.walletControllerAddMember({walletUid, requestBody}),
+                            {
+                                onSuccess: () => {
+                                    Toast.success({content: '添加成员成功'});
+                                    setAddMemberModalVisible(false);
+                                    fetchWalletDetail();
+                                },
+                                onError: (errorMsg) => {
+                                    Toast.error({content: errorMsg});
+                                }
+                            }
+                        );
+                    }}
                 >
-                    <Form.Input
+                    <Form.AutoComplete
                         field='memberUid'
                         label='用户UID'
                         placeholder='请输入成员的UID'
+                        data={searchUserOptions}
+                        loading={searchingUser}
+                        defaultActiveFirstOption
+                        style={{width: '100%'}}
+                        onSearch={async (value) => {
+                            if (!value || value.length !== 32 + 4) {
+                                setSearchUserOptions([]);
+                                return;
+                            }
+                            setSearchingUser(true)
+                            await handleResponse(
+                                getServerApi().authentication.authControllerGetPublicUserInfo({uid: value}),
+                                {
+                                    onSuccess: (data) => {
+                                        setSearchUserOptions([{
+                                            value: value,
+                                            label: data.displayName,
+                                            avatar: data.avatar
+                                        }]);
+                                        return;
+                                    },
+                                    onError: () => {
+                                        setSearchUserOptions([]);
+                                        return;
+                                    },
+                                    onFinally: () => {
+                                        setSearchingUser(false);
+                                    }
+                                }
+                            )
+                        }}
+                        // @ts-expect-error known ts error
+                        renderItem={(option: { value: string; label: string; avatar: string }) => {
+                            return (
+                                <Space>
+                                    {option.avatar ?
+                                        <Avatar size="extra-extra-small" src={option.avatar}/> :
+                                        getDefaultAvatar(option.label, 'extra-extra-small')
+                                    }
+                                    <Text strong>{option.label}</Text>
+                                </Space>
+                            )
+                        }}
                         rules={[{required: true}]}
                     />
+
                     <Form.Input
                         field='alias'
                         label='用户别名'

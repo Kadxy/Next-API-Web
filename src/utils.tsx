@@ -102,7 +102,7 @@ export const isValidEmail = (email: string) => {
 };
 
 // 格式化额度
-export const formatCredit = (creditDecimalString: string, inactived = false) => {
+export const formatCredit = (creditDecimalString: string, inactivated = false, isZeroUnlimited = false) => {
     if (!creditDecimalString) {
         return <Typography.Text strong type="secondary">
             -
@@ -112,8 +112,14 @@ export const formatCredit = (creditDecimalString: string, inactived = false) => 
 
     const credit = parseFloat(creditDecimalString);
     const isNegative = credit < 0;
-
     const absolute = Math.abs(credit);
+
+    if (isZeroUnlimited && absolute === 0) {
+        return <Typography.Text strong>
+            无限制
+        </Typography.Text>
+    }
+
     const string = {
         2: `${isNegative ? '-$' : '$'}${absolute.toFixed(2)}`,
         6: `${isNegative ? '-$' : '$'}${absolute.toFixed(6)}`,
@@ -122,7 +128,7 @@ export const formatCredit = (creditDecimalString: string, inactived = false) => 
 
     return (
         <Popover
-            style={{...inactived ? {display: 'none'} : {}, padding: '6px 8px'}}
+            style={{...inactivated ? {display: 'none'} : {}, padding: '6px 8px'}}
             content={
                 <Typography.Text strong style={{color}}>
                     {string["6"]}
@@ -130,7 +136,7 @@ export const formatCredit = (creditDecimalString: string, inactived = false) => 
             }
             position={'topRight'}
         >
-            <Typography.Text {...inactived ? {type: 'tertiary', delete: true} : {style: {color}}} strong>
+            <Typography.Text {...inactivated ? {type: 'tertiary', delete: true} : {style: {color}}} strong>
                 {string["2"]}
             </Typography.Text>
         </Popover>

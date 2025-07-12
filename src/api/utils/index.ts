@@ -16,6 +16,7 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
     options: {
         onSuccess?: (data: D) => void | Promise<void>,
         onError?: (msg: string) => void | Promise<void>,
+        onFinally?: () => void | Promise<void>,
     }
 ) => {
     const response = await controller;
@@ -28,11 +29,26 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
                 await result;
             }
         }
+
+        if (options.onFinally) {
+            const result = options.onFinally();
+            if (result instanceof Promise) {
+                await result;
+            }
+        }
+
         return data;
     }
 
     if (options.onError) {
         const result = options.onError(msg || '');
+        if (result instanceof Promise) {
+            await result;
+        }
+    }
+
+    if (options.onFinally) {
+        const result = options.onFinally();
         if (result instanceof Promise) {
             await result;
         }

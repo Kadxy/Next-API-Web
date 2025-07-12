@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { EmailLoginDto } from '../models/EmailLoginDto';
+import type { GetPublicUserInfoResponseDto } from '../models/GetPublicUserInfoResponseDto';
 import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { SendEmailLoginCodeDto } from '../models/SendEmailLoginCodeDto';
 import type { UpdateDisplayNameDto } from '../models/UpdateDisplayNameDto';
@@ -93,6 +94,24 @@ export class AuthenticationService {
             url: '/auth/self/displayName',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * Get User Public Info By Target User UID
+     * @returns GetPublicUserInfoResponseDto
+     * @throws ApiError
+     */
+    public authControllerGetPublicUserInfo({
+        uid,
+    }: {
+        uid: string,
+    }): CancelablePromise<GetPublicUserInfoResponseDto> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/auth/public/{uid}',
+            path: {
+                'uid': uid,
+            },
         });
     }
 }

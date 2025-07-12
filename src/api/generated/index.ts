@@ -19,6 +19,7 @@ export type { CreateRedemptionCodeDto } from './models/CreateRedemptionCodeDto';
 export type { CreateRedemptionCodeResponseDto } from './models/CreateRedemptionCodeResponseDto';
 export type { EmailLoginDto } from './models/EmailLoginDto';
 export type { GetAllRedemptionCodesResponseDto } from './models/GetAllRedemptionCodesResponseDto';
+export type { GetPublicUserInfoResponseDto } from './models/GetPublicUserInfoResponseDto';
 export type { GitHubAuthDto } from './models/GitHubAuthDto';
 export type { GoogleAuthDto } from './models/GoogleAuthDto';
 export type { ListApiKeyResponseDto } from './models/ListApiKeyResponseDto';
@@ -32,6 +33,7 @@ export type { ListWalletResponseItemData } from './models/ListWalletResponseItem
 export type { LoginResponseData } from './models/LoginResponseData';
 export type { LoginResponseDto } from './models/LoginResponseDto';
 export type { Object } from './models/Object';
+export type { PublicUserInfoData } from './models/PublicUserInfoData';
 export type { RedeemCodeDto } from './models/RedeemCodeDto';
 export type { RedeemCodeResponseDto } from './models/RedeemCodeResponseDto';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';

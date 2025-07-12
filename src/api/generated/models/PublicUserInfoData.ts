@@ -2,10 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UpdateWalletDisplayNameDto = {
+export type PublicUserInfoData = {
     /**
-     * 钱包显示名称
+     * User Display Name
      */
     displayName: string;
+    /**
+     * User Avatar
+     */
+    avatar: string;
 };
 

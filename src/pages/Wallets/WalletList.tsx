@@ -1,9 +1,9 @@
 import {FC, useEffect, useState} from 'react';
-import {Avatar, Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
+import {Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
 import {IconCreditCard, IconExit, IconSetting} from '@douyinfe/semi-icons';
 import {ListWalletResponseItemData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {formatCredit, getDefaultAvatar, getErrorMsg} from '../../utils';
+import {formatCredit, getErrorMsg} from '../../utils';
 import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
 import {useNavigate} from 'react-router-dom';
 import {Path} from '../../lib/constants/paths';
@@ -83,10 +83,8 @@ const WalletList: FC = () => {
             render: (_: unknown, record: ListWalletResponseItemData) => (
                 <Space>
                     <IconCreditCard
-                        style={{color: record.isOwner ? 'rgba(var(--semi-amber-5), 1)' : 'var( --semi-color-primary)'}}/>
-                    <Text strong>
-                        {record.displayName}
-                    </Text>
+                        style={{color: record.isOwner ? 'rgba(var(--semi-light-blue-5), 1)' : 'rgba(var(--semi-light-green-5), 1)'}}/>
+                    <Text strong>{record.displayName}</Text>
                 </Space>
             ),
         },
@@ -95,15 +93,7 @@ const WalletList: FC = () => {
             key: 'owner',
             width: "15%",
             render: (_: unknown, record: ListWalletResponseItemData) => (
-                <Space>
-                    {record.owner.avatar ?
-                        <Avatar size="extra-extra-small" src={record.owner.avatar}/> :
-                        getDefaultAvatar(record.owner.displayName, 'extra-extra-small')
-                    }
-                    <Text strong>
-                        {record.owner.displayName}
-                    </Text>
-                </Space>
+                <Text strong>{record.owner.displayName}</Text>
             ),
         },
         {

@@ -118,11 +118,11 @@ const AccountInfo: FC = () => {
                                             (
                                                 <>
                                                     <IconTick
-                                                        style={{cursor: 'pointer', color: '#52c41a'}}
+                                                        style={{cursor: 'pointer', color: 'var( --semi-color-success)'}}
                                                         onClick={handleSaveDisplayName}
                                                     />
                                                     <IconClose
-                                                        style={{cursor: 'pointer', color: '#ff4d4f'}}
+                                                        style={{cursor: 'pointer', color: 'var( --semi-color-danger)'}}
                                                         onClick={handleCancelEdit}
                                                     />
                                                 </>)}

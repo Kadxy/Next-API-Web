@@ -170,4 +170,25 @@ export class WalletService {
             },
         });
     }
+    /**
+     * 重新激活钱包成员
+     * @returns BaseResponse
+     * @throws ApiError
+     */
+    public walletControllerReactivateMember({
+        walletUid,
+        memberUid,
+    }: {
+        walletUid: string,
+        memberUid: string,
+    }): CancelablePromise<BaseResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/wallets/{walletUid}/members/{memberUid}/reactivate',
+            path: {
+                'walletUid': walletUid,
+                'memberUid': memberUid,
+            },
+        });
+    }
 }
