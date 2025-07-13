@@ -7,12 +7,13 @@ import {
     Empty,
     Form,
     Input,
-    InputNumber,
     Modal,
     Space,
     Spin,
+    Switch,
     Table,
     Toast,
+    Tooltip,
     Typography
 } from '@douyinfe/semi-ui';
 import {
@@ -20,6 +21,7 @@ import {
     IconClose,
     IconDelete,
     IconEdit,
+    IconHelpCircle,
     IconPlus,
     IconRedo,
     IconRefresh,
@@ -47,19 +49,24 @@ interface WalletDetailProps {
 }
 
 const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
-    const [walletDetail, setWalletDetail] = useState<WalletDetailResponseItemData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [walletDetail, setWalletDetail] = useState<WalletDetailResponseItemData | null>(null);
+
+    // add member
     const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
+    const [isSubmittingAddMember, setIsSubmittingAddMember] = useState(false);
+
+    // edit member
     const [editMemberModalVisible, setEditMemberModalVisible] = useState(false);
     const [editingMember, setEditingMember] = useState<WalletDetailResponseMemberItemData | null>(null);
-    const [editMemberFormData, setEditMemberFormData] = useState({alias: '', creditLimit: 0});
+    const [isSubmittingEditMember, setIsSubmittingEditMember] = useState(false);
 
-    // 钱包名称编辑状态
+    // edit wallet display name
     const [isEditingWalletName, setIsEditingWalletName] = useState(false);
     const [isSubmittingNewWalletName, setIsSubmittingNewWalletName] = useState(false);
     const [newWalletName, setNewWalletName] = useState('');
 
-    // 搜索用户autoComplete data
+    // user uid search auto complete
     const [searchingUser, setSearchingUser] = useState<boolean>(false);
     const [searchUserOptions, setSearchUserOptions] = useState<{ label: string; value: string, avatar: string }[]>([]);
 
@@ -148,37 +155,39 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
         }
     }
 
-    // FIXME: 更新成员
-    const handleUpdateMember = async () => {
-        if (!editingMember || !editMemberFormData.alias || editMemberFormData.creditLimit <= 0) {
-            Toast.error({content: '请填写完整的成员信息'});
+    // 更新成员
+    const handleUpdateMember = async (requestBody: UpdateMemberDto) => {
+        if (!editingMember) {
+            Toast.error({content: '成员信息错误'});
             return;
         }
 
-        const updateMemberDto: UpdateMemberDto = {
-            alias: editMemberFormData.alias,
-            creditLimit: editMemberFormData.creditLimit
-        };
+        setIsSubmittingEditMember(true);
 
-        await handleResponse(
-            getServerApi().wallet.walletControllerUpdateMember({
-                walletUid,
-                memberUid: editingMember.user.uid,
-                requestBody: updateMemberDto
-            }),
-            {
-                onSuccess: () => {
-                    Toast.success({content: '更新成员成功'});
-                    setEditMemberModalVisible(false);
-                    setEditingMember(null);
-                    setEditMemberFormData({alias: '', creditLimit: 0});
-                    fetchWalletDetail();
-                },
-                onError: (errorMsg) => {
-                    Toast.error({content: errorMsg});
+        try {
+            await handleResponse(
+                getServerApi().wallet.walletControllerUpdateMember({
+                    walletUid,
+                    memberUid: editingMember.user.uid,
+                    requestBody
+                }),
+                {
+                    onSuccess: () => {
+                        Toast.success({content: '更新成员成功'});
+                        setEditMemberModalVisible(false);
+                        setEditingMember(null);
+                        fetchWalletDetail();
+                    },
+                    onError: (errorMsg) => {
+                        Toast.error({content: errorMsg});
+                    }
                 }
-            }
-        );
+            );
+        } catch (error) {
+            Toast.error({content: getErrorMsg(error, '更新成员失败')});
+        } finally {
+            setIsSubmittingEditMember(false);
+        }
     };
 
     // 移除成员
@@ -260,14 +269,30 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
         });
     };
 
+    // 关闭添加成员模态框
+    const closeAddMemberModal = () => {
+        if (isSubmittingAddMember) {
+            return;
+        }
+        setAddMemberModalVisible(false);
+        setIsSubmittingAddMember(false);
+        setSearchUserOptions([]);
+    };
+
     // 打开编辑成员模态框
     const openEditMemberModal = (member: WalletDetailResponseMemberItemData) => {
         setEditingMember(member);
-        setEditMemberFormData({
-            alias: member.alias,
-            creditLimit: parseFloat(member.creditLimit)
-        });
         setEditMemberModalVisible(true);
+    };
+
+    // 关闭编辑成员模态框
+    const closeEditMemberModal = () => {
+        if (isSubmittingEditMember) {
+            return;
+        }
+        setEditMemberModalVisible(false);
+        setEditingMember(null);
+        setIsSubmittingEditMember(false);
     };
 
     // 成员表格列定义
@@ -296,7 +321,7 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             dataIndex: 'creditLimit',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit, !record.isActive,true),
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(record.creditLimit, !record.isActive, true),
         },
         {
             title: '已用额度',
@@ -455,8 +480,8 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
                                 <Typography.Text
                                     link
                                     onClick={() => setAddMemberModalVisible(true)}
-                                    type='tertiary'
-                                    style={{marginLeft: 1}}
+                                    type='primary'
+                                    style={{marginLeft: 4, cursor: 'pointer'}}
                                 >
                                     添加成员
                                 </Typography.Text>
@@ -467,179 +492,236 @@ const WalletDetail: FC<WalletDetailProps> = ({walletUid}) => {
             <Modal
                 title="添加成员"
                 visible={addMemberModalVisible}
-                onCancel={() => setAddMemberModalVisible(false)}
+                onCancel={closeAddMemberModal}
                 width={400}
                 footer={null}
+                maskClosable={false}
                 centered
             >
                 <Form<AddMemberDto>
                     style={{margin: '0 8px 24px 8px'}}
                     onSubmit={async (requestBody) => {
-                        await handleResponse(
-                            getServerApi().wallet.walletControllerAddMember({walletUid, requestBody}),
-                            {
-                                onSuccess: () => {
-                                    Toast.success({content: '添加成员成功'});
-                                    setAddMemberModalVisible(false);
-                                    fetchWalletDetail();
-                                },
-                                onError: (errorMsg) => {
-                                    Toast.error({content: errorMsg});
-                                }
-                            }
-                        );
-                    }}
-                >
-                    <Form.AutoComplete
-                        field='memberUid'
-                        label='用户UID'
-                        placeholder='请输入成员的UID'
-                        data={searchUserOptions}
-                        loading={searchingUser}
-                        defaultActiveFirstOption
-                        style={{width: '100%'}}
-                        onSearch={async (value) => {
-                            if (!value || value.length !== 32 + 4) {
-                                setSearchUserOptions([]);
-                                return;
-                            }
-                            setSearchingUser(true)
+                        setIsSubmittingAddMember(true);
+                        try {
                             await handleResponse(
-                                getServerApi().authentication.authControllerGetPublicUserInfo({uid: value}),
+                                getServerApi().wallet.walletControllerAddMember({walletUid, requestBody}),
                                 {
-                                    onSuccess: (data) => {
-                                        setSearchUserOptions([{
-                                            value: value,
-                                            label: data.displayName,
-                                            avatar: data.avatar
-                                        }]);
-                                        return;
+                                    onSuccess: () => {
+                                        Toast.success({content: '添加成员成功'});
+                                        closeAddMemberModal();
+                                        fetchWalletDetail();
                                     },
-                                    onError: () => {
+                                    onError: (errorMsg) => {
+                                        Toast.error({content: errorMsg});
+                                    }
+                                }
+                            );
+                        } catch (error) {
+                            Toast.error({content: getErrorMsg(error, '添加成员失败')});
+                        } finally {
+                            setIsSubmittingAddMember(false);
+                        }
+                    }}
+                    initValues={{creditLimit: 0, memberUid: '', alias: ''}}
+                >
+                    {({formState, formApi}) => (
+                        <>
+                            <Form.AutoComplete
+                                field='memberUid'
+                                label={{
+                                    text: '用户UID',
+                                    extra: (
+                                        <Tooltip content='可在个人中心查看'>
+                                            <IconHelpCircle style={{color: 'var(--semi-color-text-2)'}}/>
+                                        </Tooltip>
+                                    )
+                                }}
+                                placeholder='请输入成员的UID'
+                                data={searchUserOptions}
+                                loading={searchingUser}
+                                defaultActiveFirstOption
+                                style={{width: '100%'}}
+                                onSearch={async (value) => {
+                                    if (!value || value.length !== 32 + 4) {
                                         setSearchUserOptions([]);
                                         return;
-                                    },
-                                    onFinally: () => {
-                                        setSearchingUser(false);
                                     }
-                                }
-                            )
-                        }}
-                        // @ts-expect-error known ts error
-                        renderItem={(option: { value: string; label: string; avatar: string }) => {
-                            return (
-                                <Space>
-                                    {option.avatar ?
-                                        <Avatar size="extra-extra-small" src={option.avatar}/> :
-                                        getDefaultAvatar(option.label, 'extra-extra-small')
-                                    }
-                                    <Text strong>{option.label}</Text>
-                                </Space>
-                            )
-                        }}
-                        rules={[{required: true}]}
-                    />
+                                    setSearchingUser(true)
+                                    await handleResponse(
+                                        getServerApi().authentication.authControllerGetPublicUserInfo({uid: value}),
+                                        {
+                                            onSuccess: (data) => {
+                                                setSearchUserOptions([{
+                                                    value: value,
+                                                    label: data.displayName,
+                                                    avatar: data.avatar
+                                                }]);
+                                                return;
+                                            },
+                                            onError: () => {
+                                                setSearchUserOptions([]);
+                                                return;
+                                            },
+                                            onFinally: () => {
+                                                setSearchingUser(false);
+                                            }
+                                        }
+                                    )
+                                }}
+                                // @ts-expect-error known ts error
+                                renderItem={(option: { value: string; label: string; avatar: string }) => {
+                                    return (
+                                        <Space>
+                                            {option.avatar ?
+                                                <Avatar size="extra-extra-small" src={option.avatar}/> :
+                                                getDefaultAvatar(option.label, 'extra-extra-small')
+                                            }
+                                            <Text strong>{option.label}</Text>
+                                        </Space>
+                                    )
+                                }}
+                                rules={[
+                                    {required: true, message: '请输入用户UID'},
+                                    {len: 36, message: 'UID长度必须为36位字符'}
+                                ]}
+                            />
 
-                    <Form.Input
-                        field='alias'
-                        label='用户别名'
-                        placeholder='为该成员设置一个易于识别的别名'
-                        rules={[{required: true}]}
-                    />
-                    <Form.InputNumber
-                        field='creditLimit'
-                        label='额度限制'
-                        placeholder='成员最大消费额度'
-                        prefix={'$'}
-                        min={0}
-                        max={1000000}
-                        precision={2}
-                        rules={[{required: true}]}
-                    />
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        block
-                    >
-                        提交
-                    </Button>
+                            <Form.Input
+                                field='alias'
+                                label='用户别名'
+                                placeholder='为该成员设置一个易于识别的别名'
+                                autoComplete={'off'}
+                                rules={[
+                                    {required: true, message: '请输入用户别名'},
+                                    {min: 1, message: '别名不能为空'}
+                                ]}
+                                showClear
+                            />
+                            <Space style={{width: '100%'}} spacing={'loose'}>
+                                <Form.InputNumber
+                                    field='creditLimit'
+                                    label='额度限制'
+                                    placeholder='成员最大消费额度'
+                                    autoComplete={'off'}
+                                    min={0}
+                                    max={1000000}
+                                    precision={2}
+                                    hideButtons
+                                    step={10}
+                                    shiftStep={100}
+                                    currency={'USD'}
+                                    showCurrencySymbol={false}
+                                    prefix={'$'}
+                                    rules={[
+                                        {required: true, message: '请输入额度限制'},
+                                        {type: 'number', min: 0, message: '额度限制不能为负数'}
+                                    ]}
+                                    disabled={formState.values.creditLimit === 0}
+                                />
+                                <Form.Slot label={{text: '无限额度'}}>
+                                    <Switch
+                                        checked={formState.values.creditLimit === 0}
+                                        onChange={(checked) => {
+                                            formApi.setValue('creditLimit', checked ? 0 : 100);
+                                        }}
+                                    />
+                                </Form.Slot>
+                            </Space>
+                            <Space style={{width: '100%', justifyContent: 'flex-end', marginTop: 16}}>
+                                <Button onClick={closeAddMemberModal}>
+                                    取消
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    loading={isSubmittingAddMember}
+                                >
+                                    添加成员
+                                </Button>
+                            </Space>
+
+                        </>
+                    )}
                 </Form>
             </Modal>
 
             <Modal
-                title="编辑钱包成员"
+                title="编辑成员"
                 visible={editMemberModalVisible}
-                onCancel={() => {
-                    setEditMemberModalVisible(false);
-                    setEditingMember(null);
-                    setEditMemberFormData({alias: '', creditLimit: 0});
-                }}
+                onCancel={closeEditMemberModal}
+                width={400}
                 footer={null}
-                width={480}
+                maskClosable={false}
                 centered
             >
-                <Space vertical style={{width: '100%'}} spacing={16}>
-                    <div>
-                        <Typography.Text strong style={{color: 'var(--semi-color-text-0)'}}>
-                            别名 <Typography.Text type="danger">*</Typography.Text>
-                        </Typography.Text>
-                        <Input
-                            placeholder="请输入成员别名"
-                            value={editMemberFormData.alias}
-                            onChange={(value) => setEditMemberFormData(prev => ({...prev, alias: value}))}
-                            style={{marginTop: 8}}
-                            showClear
-                        />
-                        <Typography.Text type="tertiary" style={{marginTop: 4, display: 'block'}}>
-                            为该成员设置一个易于识别的别名
-                        </Typography.Text>
-                    </div>
-                    <div>
-                        <Typography.Text strong style={{color: 'var(--semi-color-text-0)'}}>
-                            额度限制 <Typography.Text type="danger">*</Typography.Text>
-                        </Typography.Text>
-                        <InputNumber
-                            placeholder="请输入额度限制"
-                            min={0}
-                            step={1}
-                            precision={2}
-                            value={editMemberFormData.creditLimit}
-                            onChange={(value) => setEditMemberFormData(prev => ({
-                                ...prev,
-                                creditLimit: Number(value) || 0
-                            }))}
-                            formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={value => value!.replace(/\$\s?|(,*)/g, '')}
-                            style={{marginTop: 8, width: '100%'}}
-                        />
-                        <Typography.Text type="tertiary" style={{marginTop: 4, display: 'block'}}>
-                            设置该成员的最大使用额度（美元）
-                        </Typography.Text>
-                    </div>
-                    <div style={{
-                        textAlign: 'right',
-                        marginTop: 24,
-                        paddingTop: 16,
-                        borderTop: '1px solid var(--semi-color-border)'
-                    }}>
-                        <Space>
-                            <Button onClick={() => {
-                                setEditMemberModalVisible(false);
-                                setEditingMember(null);
-                                setEditMemberFormData({alias: '', creditLimit: 0});
-                            }}>
-                                取消
-                            </Button>
-                            <Button
-                                type="primary"
-                                onClick={handleUpdateMember}
-                                disabled={!editMemberFormData.alias.trim() || editMemberFormData.creditLimit <= 0}
-                            >
-                                保存修改
-                            </Button>
-                        </Space>
-                    </div>
-                </Space>
+                {editingMember && (
+                    <Form<UpdateMemberDto>
+                        style={{margin: '0 8px 24px 8px'}}
+                        initValues={{
+                            alias: editingMember.alias,
+                            creditLimit: parseFloat(editingMember.creditLimit)
+                        }}
+                        onSubmit={handleUpdateMember}
+                    >
+                        {({formState, formApi}) => (
+                            <>
+                                <Form.Input
+                                    field='alias'
+                                    label='用户别名'
+                                    placeholder='为该成员设置一个易于识别的别名'
+                                    autoComplete={'off'}
+                                    rules={[
+                                        {required: true, message: '请输入用户别名'},
+                                        {min: 1, message: '别名不能为空'}
+                                    ]}
+                                    showClear
+                                />
+                                <Space style={{width: '100%'}} spacing={'loose'}>
+                                    <Form.InputNumber
+                                        field='creditLimit'
+                                        label='额度限制'
+                                        placeholder='成员最大消费额度'
+                                        autoComplete={'off'}
+                                        min={0}
+                                        max={1000000}
+                                        precision={2}
+                                        hideButtons
+                                        step={10}
+                                        shiftStep={100}
+                                        currency={'USD'}
+                                        showCurrencySymbol={false}
+                                        prefix={'$'}
+                                        rules={[
+                                            {required: true, message: '请输入额度限制'},
+                                            {type: 'number', min: 0, message: '额度限制不能为负数'}
+                                        ]}
+                                        disabled={formState.values.creditLimit === 0}
+                                    />
+                                    <Form.Slot label={{text: '无限额度'}}>
+                                        <Switch
+                                            checked={formState.values.creditLimit === 0}
+                                            onChange={(checked) => {
+                                                formApi.setValue('creditLimit', checked ? 0 : 100);
+                                            }}
+                                        />
+                                    </Form.Slot>
+                                </Space>
+                                <Space style={{width: '100%', justifyContent: 'flex-end', marginTop: 16}}>
+                                    <Button onClick={closeEditMemberModal}>
+                                        取消
+                                    </Button>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={isSubmittingEditMember}
+                                    >
+                                        保存修改
+                                    </Button>
+                                </Space>
+                            </>
+                        )}
+                    </Form>
+                )}
             </Modal>
         </Spin>
     );
