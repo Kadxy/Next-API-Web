@@ -57,7 +57,7 @@ const App = () => {
                 <Layout.Sider>
                     <Nav
                         selectedKeys={[currentPath]}
-                        style={{height: '100%'}}
+                        style={{height: '100%', width: '192px'}}
                         items={[
                             {itemKey: Path.ROOT, text: '首页', icon: <IconHome/>},
                             {itemKey: Path.USAGE, text: '用量信息', icon: <IconHistogram/>},
