@@ -72,6 +72,24 @@ export class PasskeyAuthenticationService {
         });
     }
     /**
+     * Start Passkey Authentication by Email
+     * @returns any
+     * @throws ApiError
+     */
+    public passkeyControllerGenerateAuthenticationOptionsByEmail({
+        email,
+    }: {
+        email: string,
+    }): CancelablePromise<any> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/auth/passkey/authentication/{email}',
+            path: {
+                'email': email,
+            },
+        });
+    }
+    /**
      * List User Passkeys
      * @returns ListPasskeysResponseDto
      * @throws ApiError
