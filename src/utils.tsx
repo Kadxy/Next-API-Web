@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
-import {Avatar, Popover, Typography} from "@douyinfe/semi-ui";
-import {AvatarProps} from "@douyinfe/semi-ui/lib/es/avatar";
+import { Avatar, Popover, Typography } from "@douyinfe/semi-ui";
+import { AvatarProps } from "@douyinfe/semi-ui/lib/es/avatar";
 
 
 // 注册插件
@@ -24,10 +24,12 @@ export const getErrorMsg = (error: unknown, prefix: string = '', fallback: strin
     console.debug(prefix, 'error', error);
 
     if (error instanceof Error) {
+        const { name, message } = error;
+
         if (prefix) {
-            return `${prefix}: ${error.message}`;
+            return `${prefix}: ${name} ${message}`;
         }
-        return error.message;
+        return `${name} ${message}`;
     }
     return fallback;
 };
@@ -128,15 +130,15 @@ export const formatCredit = (creditDecimalString: string, inactivated = false, i
 
     return (
         <Popover
-            style={{...inactivated ? {display: 'none'} : {}, padding: '6px 8px'}}
+            style={{ ...inactivated ? { display: 'none' } : {}, padding: '6px 8px' }}
             content={
-                <Typography.Text strong style={{color}}>
+                <Typography.Text strong style={{ color }}>
                     {string["6"]}
                 </Typography.Text>
             }
             position={'topRight'}
         >
-            <Typography.Text {...inactivated ? {type: 'tertiary', delete: true} : {style: {color}}} strong>
+            <Typography.Text {...inactivated ? { type: 'tertiary', delete: true } : { style: { color } }} strong>
                 {string["2"]}
             </Typography.Text>
         </Popover>

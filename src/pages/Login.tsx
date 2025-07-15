@@ -12,7 +12,7 @@ import {
     Toast,
     Typography
 } from '@douyinfe/semi-ui';
-import Icon, { IconArrowLeft, IconGithubLogo, IconMail } from '@douyinfe/semi-icons';
+import Icon, { IconGithubLogo, IconMail, IconSend } from '@douyinfe/semi-icons';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
@@ -23,13 +23,11 @@ import GoogleIcon from '@/assets/icons/google.svg?react';
 import PasskeyIcon from '@/assets/icons/passkey_white.svg?react';
 // @ts-expect-error handle svg file
 import FeishuIcon from '@/assets/icons/feishu.svg?react';
-import { startAuthentication, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
+import { startAuthentication, PublicKeyCredentialRequestOptionsJSON, browserSupportsWebAuthn, browserSupportsWebAuthnAutofill } from '@simplewebauthn/browser';
 import { UserResponseData } from '../api/generated';
 import { getErrorMsg, isValidEmail } from '../utils';
 import { AuthMethod, OAuthPlatform } from "../interface/auth.ts";
 import { ButtonProps } from '@douyinfe/semi-ui/lib/es/button/Button';
-
-
 
 const buttonProps: ButtonProps = {
     block: true,
@@ -63,7 +61,7 @@ const Login: FC = () => {
     const [showMoreOptions, setShowMoreOptions] = useState(false);
 
     // email login
-    const [emailSignInStep, setEmailSignInStep] = useState<'none' | 'email' | 'code'>('none');
+    const [showEmailCode, setShowEmailCode] = useState(false);
     const [resendTime, setResendTime] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,6 +70,9 @@ const Login: FC = () => {
 
     // 登录处理状态（Card 的 loading 状态）
     const [processing, setProcessing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
+
+    // passkey auth json
+    const [passkeyConfig, setPasskeyConfig] = useState<{ optionsJSON: PublicKeyCredentialRequestOptionsJSON, state: string } | null>(null);
 
     // 监听其他标签页的登录事件
     useEffect(() => {
@@ -111,6 +112,31 @@ const Login: FC = () => {
         };
     }, [resendTime]);
 
+    // 加载 passkey auth config 并检查浏览器是否支持 passkey autofill 如果支持启动 passkey autofill
+    useEffect(() => {
+        const loadPasskeyConfig = async () => {
+            if (!browserSupportsWebAuthn()) {
+                return;
+            }
+
+            const passkeyApi = getServerApi().passkeyAuthentication.passkeyControllerGenerateAuthenticationOptions();
+            await handleResponse(passkeyApi, {
+                onSuccess: async (data) => {
+                    const { options: optionsJSON, state } = data;
+                    setPasskeyConfig({ optionsJSON, state });
+
+                    if (await browserSupportsWebAuthnAutofill()) {
+                        performPasskeyAuthentication({ optionsJSON, state }, true);
+                    }
+                }
+            });
+        }
+
+        loadPasskeyConfig();
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     if (initialized && token && user) {
         const to = searchParams.get('redirect') || from || Path.ROOT;
         return <Navigate to={to} replace />;
@@ -127,12 +153,12 @@ const Login: FC = () => {
             return;
         }
 
+        setPreparing({ ...preparing, [AuthMethod.Email]: true });
         try {
-            setPreparing({ ...preparing, [AuthMethod.Email]: true });
             await handleResponse(api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
                     setResendTime(60);
-                    setEmailSignInStep('code');
+                    setShowEmailCode(true);
                     Toast.success({ content: 'Verification code sent', stack: true });
                 },
                 onError: (errorMsg) => {
@@ -190,41 +216,30 @@ const Login: FC = () => {
         }
     };
 
-    // Passkey 认证流程
-    const handlePasskeyAuth = async (email?: string, browserAutofill = false) => {
+    // Email 认证流程(先尝试 passkey 认证，如果失败或者拒绝，则使用邮箱验证码)
+    const handleEmailAuth = async () => {
         if (Object.values(preparing).some(Boolean)) {
             return;
         }
 
-        if (browserAutofill) {
-            setPreparing({ ...preparing, [AuthMethod.Passkey]: true });
-        }
+        setPreparing({ ...preparing, [AuthMethod.Email]: true });
 
-        setPreparing({ ...preparing, [AuthMethod.Passkey]: true });
-        const passkeyApi =
-            email ? getServerApi().passkeyAuthentication.passkeyControllerGenerateAuthenticationOptionsByEmail({ email })
-                : getServerApi().passkeyAuthentication.passkeyControllerGenerateAuthenticationOptions();
+        const passkeyApi = getServerApi().passkeyAuthentication.passkeyControllerGenerateAuthenticationOptionsByEmail({ email: inputs.email });
 
         try {
             // 1. 从服务器获取认证选项
             await handleResponse(
                 passkeyApi, {
                 onSuccess: async (data) => {
-                    if (email && !data) {
-                        await sendVerifyCode();
-                        return;
-                    } else if (!email && !data) {
-                        Toast.error({ content: 'No passkey available', stack: true });
+                    if (!data) {
+                        console.log('no passkey config for current email');
                         return;
                     }
 
-                    const { options: optionsJSON, state } = data;
+                    const { options: optionsJSON, state } = data as { options: PublicKeyCredentialRequestOptionsJSON, state: string };
 
                     // 2. 如果有 email 且有可用的 passkey，先询问用户
-                    if (email && optionsJSON) {
-                        // 重置准备状态，因为用户需要先选择
-                        setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
-
+                    if ('allowCredentials' in optionsJSON && optionsJSON.allowCredentials && optionsJSON.allowCredentials.length > 0) {
                         return new Promise<void>((resolve) => {
                             Modal.confirm({
                                 title: '使用通行密钥继续',
@@ -236,20 +251,17 @@ const Login: FC = () => {
                                 onOk: async () => {
                                     resolve();
                                     // 继续 passkey 认证流程
-                                    await performPasskeyAuthentication(optionsJSON, state);
+                                    await performPasskeyAuthentication({ optionsJSON, state });
                                 },
                                 onCancel: async () => {
                                     resolve();
                                     // 切换到邮箱验证码流程
                                     await sendVerifyCode();
-                                }
+                                },
+                                closable: false,
                             });
                         });
                     }
-
-
-                    // 3. 没有 email 或没有可用的 passkey，直接进行认证
-                    await performPasskeyAuthentication(optionsJSON, state, browserAutofill);
                 },
                 onError: (errorMsg) => {
                     Toast.error({ content: errorMsg, stack: true });
@@ -258,24 +270,32 @@ const Login: FC = () => {
         } catch (error) {
             Toast.error({ content: getErrorMsg(error, '认证失败'), stack: true });
         } finally {
-            if (!browserAutofill) {
-                setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
-                // 无论是否成功，都要重置状态
-                setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
-                setProcessing({ ...processing, [AuthMethod.Passkey]: false });
-                setPasskeyWaiting(false);
-            }
+            setPreparing({ ...preparing, [AuthMethod.Email]: false });
         }
     };
 
     // 执行 Passkey 认证
-    const performPasskeyAuthentication = async (optionsJSON: PublicKeyCredentialRequestOptionsJSON, state: string, browserAutofill = false) => {
+    const performPasskeyAuthentication = async (
+        config: { optionsJSON: PublicKeyCredentialRequestOptionsJSON, state: string } = passkeyConfig as { optionsJSON: PublicKeyCredentialRequestOptionsJSON, state: string },
+        browserAutofill = false
+    ) => {
+        // Cancel the pending WebAuthn request before starting a new one
+        // WebAuthnAbortService.cancelCeremony();
+
+        const { optionsJSON, state } = config;
+
+        if (!optionsJSON || !state) {
+            Toast.error({ content: 'Failed to get passkey config, please refresh the page and try again', stack: true });
+            return;
+        }
+
         try {
             if (!browserAutofill) {
                 setPasskeyWaiting(true);
             }
 
-            // 启动认证流程，让用户选择他们的 passkey
+            // 启动认证流程，让用户选择 passkey
+            console.log('startAuthentication', optionsJSON, browserAutofill);
             const authResponse = await startAuthentication({
                 optionsJSON: optionsJSON,
                 useBrowserAutofill: browserAutofill,
@@ -283,8 +303,9 @@ const Login: FC = () => {
 
             if (!browserAutofill) {
                 setPasskeyWaiting(false);
-                setProcessing({ ...processing, [AuthMethod.Passkey]: true });
             }
+
+            setProcessing({ ...processing, [AuthMethod.Passkey]: true });
 
             // 将认证响应发送到服务器进行验证
             await handleResponse(api.passkeyAuthentication.passkeyControllerVerifyAuthenticationResponse({
@@ -292,9 +313,7 @@ const Login: FC = () => {
                 requestBody: authResponse
             }), {
                 onSuccess: (data) => {
-                    if (!browserAutofill) {
-                        setProcessing({ ...processing, [AuthMethod.Passkey]: false });
-                    }
+                    setProcessing({ ...processing, [AuthMethod.Passkey]: false });
                     handleLoginResponse(data)
                 },
                 onError: (errorMsg) => {
@@ -305,22 +324,21 @@ const Login: FC = () => {
             // 用户可能取消了认证
             if (error instanceof Error && error.name === 'NotAllowedError') {
                 Toast.info({ content: '认证已取消', stack: true });
+            } else if (error instanceof Error && error.name === 'AbortError') {
+                return;
             } else {
                 Toast.error({ content: getErrorMsg(error, '认证失败'), stack: true });
             }
         } finally {
             if (!browserAutofill) {
                 setPasskeyWaiting(false);
-                setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
-                setProcessing({ ...processing, [AuthMethod.Passkey]: false });
             }
+            setProcessing({ ...processing, [AuthMethod.Passkey]: false });
         }
     };
 
-    /* ------------------------------ auth step2 ------------------------------ */
-
     // 验证邮箱验证码
-    const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
+    const verifyEmailCodeAndLogin = async (values: { email: string, code: string }) => {
         if (values.code.length !== 6) {
             Toast.error({ content: 'Please enter a valid verification code', stack: true });
             return;
@@ -388,30 +406,6 @@ const Login: FC = () => {
                     spinning={Object.values(processing).some(Boolean)}
                 >
                     <Space vertical spacing={'medium'} style={{ width: '100%' }}>
-                        {emailSignInStep !== 'none' && (
-                            <Button
-                                icon={<IconArrowLeft />}
-                                onClick={() => {
-                                    const prevStep = emailSignInStep === 'email' ? 'none' : 'email';
-                                    setEmailSignInStep(prevStep);
-                                    // 重置倒计时和验证码
-                                    if (prevStep === 'none' || prevStep === 'email') {
-                                        setResendTime(0);
-                                        setInputs({ ...inputs, code: '' });
-                                    }
-                                }}
-                                style={{
-                                    backgroundColor: 'var(--semi-color-bg-1)',
-                                    color: 'var(--semi-color-text-2)',
-                                    alignSelf: 'flex-start',
-                                    marginTop: -18
-                                }}
-                                noHorizontalPadding
-                            >
-                                Back
-                            </Button>
-                        )}
-
                         <Typography.Title
                             heading={3}
                             style={{ width: '100%', marginBottom: 12 }}
@@ -419,35 +413,7 @@ const Login: FC = () => {
                             Sign in
                         </Typography.Title>
 
-                        {emailSignInStep === 'email' && (
-                            <>
-                                <Input
-                                    size='large'
-                                    autoFocus
-                                    autoComplete='email webauthn'
-                                    prefix={<IconMail size='large' />}
-                                    type='email'
-                                    placeholder='Enter your email address'
-                                    value={inputs.email}
-                                    onChange={(value) => setInputs({ ...inputs, email: value })}
-                                    onEnterPress={() => sendVerifyCode()}
-                                    style={buttonProps.style}
-                                />
-                                <Button
-                                    {...buttonProps}
-                                    type="primary"
-                                    theme='light'
-                                    onClick={async () => {
-                                        await handlePasskeyAuth(inputs.email)
-                                    }}
-                                    loading={preparing[AuthMethod.Email]}
-                                    disabled={!inputs.email}
-                                >
-                                    Continue
-                                </Button>
-                            </>
-                        )}
-                        {emailSignInStep === 'code' && (
+                        {showEmailCode && (
                             <>
                                 <Typography.Text type="secondary">
                                     Enter the verification code sent to&nbsp;
@@ -465,7 +431,7 @@ const Login: FC = () => {
                                         autoFocus
                                         size="large"
                                         format={/[A-Z]|[0-9]|[a-z]/}
-                                        onComplete={(value) => handleVerifyCodeLogin({
+                                        onComplete={(value) => verifyEmailCodeAndLogin({
                                             email: inputs.email,
                                             code: value
                                         })}
@@ -485,23 +451,48 @@ const Login: FC = () => {
                                 </Button>
                             </>
                         )}
-                        {emailSignInStep === 'none' && (
-                            <Space vertical spacing={8} style={{ width: '100%' }}>
-                                <Button
-                                    {...buttonProps}
-                                    type="primary"
-                                    theme='solid'
-                                    onClick={async () => await handlePasskeyAuth()}
-                                    icon={<Icon svg={<PasskeyIcon />} />}
-                                    loading={preparing[AuthMethod.Passkey]}
-                                >
-                                    {passkeyWaiting ?
-                                        'Waiting for input...'
-                                        // 'Waiting for input from browser interaction...'
-                                        :
-                                        'Sign in with Passkey'
-                                    }
-                                </Button>
+                        {!showEmailCode && (
+                            <Space vertical style={{ width: '100%' }}>
+                                <Input
+                                    size='large'
+                                    autoComplete='email username webauthn'
+                                    prefix={<IconMail size='large' />}
+                                    type='email'
+                                    placeholder='Enter your email address'
+                                    value={inputs.email}
+                                    onChange={(value) => setInputs({ ...inputs, email: value })}
+                                    onEnterPress={() => sendVerifyCode()}
+                                    style={buttonProps.style}
+                                />
+                                {inputs.email ? (
+                                    <Button
+                                        {...buttonProps}
+                                        type="primary"
+                                        theme='solid'
+                                        onClick={handleEmailAuth}
+                                        icon={<IconSend size='large' />}
+                                        loading={preparing[AuthMethod.Email]}
+                                    >
+                                        Continue with Email
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        {...buttonProps}
+                                        type="primary"
+                                        theme='solid'
+                                        onClick={() => performPasskeyAuthentication()}
+                                        icon={<Icon svg={<PasskeyIcon />} />}
+                                        loading={preparing[AuthMethod.Passkey]}
+                                    >
+                                        {passkeyWaiting ?
+                                            'Waiting for input...'
+                                            // 'Waiting for input from browser interaction...'
+                                            :
+                                            'Sign in with Passkey'
+                                        }
+                                    </Button>
+                                )}
+
                                 <Divider
                                     style={{
                                         color: 'var(--semi-color-text-2)',
@@ -519,7 +510,7 @@ const Login: FC = () => {
                                     Continue with Feishu
                                 </Button>
                                 <Collapsible isOpen={showMoreOptions} style={{ width: '100%' }}>
-                                    <Space vertical spacing={8} style={{ width: '100%' }}>
+                                    <Space vertical style={{ width: '100%' }}>
                                         <Button
                                             {...buttonProps}
                                             icon={<Icon svg={<GoogleIcon />} />}
@@ -535,17 +526,6 @@ const Login: FC = () => {
                                             loading={preparing[AuthMethod.Github]}
                                         >
                                             Continue with GitHub
-                                        </Button>
-                                        <Button
-                                            {...buttonProps}
-                                            icon={<IconMail size='large' />}
-                                            onClick={async () => {
-                                                setEmailSignInStep('email');
-                                                await handlePasskeyAuth();
-                                            }}
-                                            loading={preparing[AuthMethod.Email]}
-                                        >
-                                            Continue with Email&nbsp;&nbsp;
                                         </Button>
                                     </Space>
                                 </Collapsible>
