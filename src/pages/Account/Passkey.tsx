@@ -138,23 +138,20 @@ const PasskeyManager: FC = () => {
     const renderPasskeyItem = (passkey: ListPasskeysResponseData) => {
         return (
             <List.Item
-                main={
-                    <Space vertical align="start">
-                        <Space>
-                            <Icon svg={<PasskeyIcon />} size='large' />
-                            <Title
-                                style={{ maxWidth: 360 }}
-                                heading={5}
-                                ellipsis={{ showTooltip: true }}
-                            >
+                style={{ padding: 10 }}
+                main={(
+                    <Space align='center'>
+                        <Icon svg={<PasskeyIcon />} />
+                        <Space vertical align="start" spacing={2}>
+                            <Title heading={6}>
                                 {passkey.displayName || passkey.id}
                             </Title>
+                            <Text type='tertiary' size="small">
+                                添加于: {getDayjsFormat(passkey.createdAt)} | 上次使用: {getDayjsEasyRead(passkey.lastUsedAt)}
+                            </Text>
                         </Space>
-                        <Text type='tertiary'>
-                            添加于: {getDayjsFormat(passkey.createdAt)} | 上次使用: {getDayjsEasyRead(passkey.lastUsedAt)}
-                        </Text>
                     </Space>
-                }
+                )}
                 extra={
                     <Space>
                         <Button
@@ -167,9 +164,8 @@ const PasskeyManager: FC = () => {
                             icon={<IconDelete />}
                             onClick={() => handleDeletePasskey(passkey.id)}
                         />
-                    </Space>
+                    </Space >
                 }
-                style={{ marginTop: 12 }}
             />
         );
     };
@@ -182,7 +178,6 @@ const PasskeyManager: FC = () => {
             loading={isLoading && !editingPasskeyId}
             headerExtraContent={
                 <Button
-                    // 鼓励用户添加，所以使用 secondary 而非 tertiary
                     loading={isRegistering}
                     onClick={handleRegisterPasskey}
                     style={{ margin: '-10px 0' }}
@@ -197,6 +192,7 @@ const PasskeyManager: FC = () => {
                         size='small'
                         dataSource={passkeys}
                         renderItem={renderPasskeyItem}
+                        style={{ margin: -16 }}
                     />
                 ) : (
                     <Empty

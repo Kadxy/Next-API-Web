@@ -3,7 +3,11 @@ import { UserResponseData } from '../../api/generated';
 
 export interface AuthContextType {
     // Loading
+    /** @deprecated use `initialized` instead */
     isLoading: boolean;
+
+    // Initialized
+    initialized: boolean;
 
     // User
     user: UserResponseData | null;

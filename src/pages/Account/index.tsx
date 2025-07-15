@@ -3,6 +3,8 @@ import AccountInfo from './AccountInfo';
 import AccountLinks from './AccountLinks';
 import PasskeyManager from './Passkey';
 import { Space } from '@douyinfe/semi-ui';
+import DangerArea from './DangerArea';
+
 const Account: FC = () => {
     return (
         <Space vertical spacing={'medium'}>
@@ -14,6 +16,9 @@ const Account: FC = () => {
 
             {/* Passkey管理 */}
             <PasskeyManager />
+
+            {/* 危险操作 */}
+            <DangerArea />
         </Space>
     );
 };

@@ -36,9 +36,9 @@ export type UserResponseData = {
      */
     googleId: string;
     /**
-     * User Is Admin
+     * User Feishu Union ID
      */
-    isAdmin: boolean;
+    feishuId: string;
     /**
      * User Created At
      */

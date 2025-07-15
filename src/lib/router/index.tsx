@@ -1,6 +1,7 @@
 import { Path } from '../constants/paths';
 import Home from '../../pages/Home';
 import Login from '../../pages/Login';
+import Callback from '../../pages/Callback';
 import Account from '../../pages/Account/index';
 import ApiKeys from '../../pages/ApiKeys';
 import Recharge from '../../pages/Recharge';
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
             {
                 path: Path.LOGIN,
                 element: <Login />,
+            },
+            {
+                path: Path.CALLBACK_DYNAMIC,
+                element: <Callback />,
             },
             // 受保护的路由
             {
@@ -62,7 +67,7 @@ export const router = createBrowserRouter([
                         element: <Wallets />,
                     },
                     {
-                        path: `${Path.WALLETS}/:uid`,
+                        path: Path.WALLETS_DETAIL,
                         element: <Wallets />,
                     },
                 ],

@@ -12,6 +12,11 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AddMemberDto } from './models/AddMemberDto';
 export type { BaseResponse } from './models/BaseResponse';
+export type { BillingLogDetailData } from './models/BillingLogDetailData';
+export type { BillingLogDetailResponseDto } from './models/BillingLogDetailResponseDto';
+export type { BillingLogItemData } from './models/BillingLogItemData';
+export type { BillingLogListData } from './models/BillingLogListData';
+export type { BillingLogListResponseDto } from './models/BillingLogListResponseDto';
 export type { CreateApiKeyRequestDto } from './models/CreateApiKeyRequestDto';
 export type { CreateApiKeyResponseData } from './models/CreateApiKeyResponseData';
 export type { CreateApiKeyResponseDto } from './models/CreateApiKeyResponseDto';
@@ -20,8 +25,7 @@ export type { CreateRedemptionCodeResponseDto } from './models/CreateRedemptionC
 export type { EmailLoginDto } from './models/EmailLoginDto';
 export type { GetAllRedemptionCodesResponseDto } from './models/GetAllRedemptionCodesResponseDto';
 export type { GetPublicUserInfoResponseDto } from './models/GetPublicUserInfoResponseDto';
-export type { GitHubAuthDto } from './models/GitHubAuthDto';
-export type { GoogleAuthDto } from './models/GoogleAuthDto';
+export type { IOAuth2LoginDto } from './models/IOAuth2LoginDto';
 export type { ListApiKeyResponseDto } from './models/ListApiKeyResponseDto';
 export type { ListApiKeyResponseItemData } from './models/ListApiKeyResponseItemData';
 export type { ListApiKeyResponseItemWalletItemData } from './models/ListApiKeyResponseItemWalletItemData';
@@ -52,7 +56,8 @@ export type { WalletDetailResponseMemberUserItemData } from './models/WalletDeta
 
 export { ApikeyService } from './services/ApikeyService';
 export { AuthenticationService } from './services/AuthenticationService';
-export { BillingService } from './services/BillingService';
+export { BillingLogsService } from './services/BillingLogsService';
+export { FeishuAuthenticationService } from './services/FeishuAuthenticationService';
 export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 export { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
 export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';

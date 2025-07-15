@@ -1,55 +1,62 @@
-import {FC, useEffect, useRef, useState} from 'react';
-import {Button, Card, Divider, Input, Modal, PinCode, Space, Spin, Toast, Typography} from '@douyinfe/semi-ui';
-import Icon, {IconArrowLeft, IconGithubLogo, IconMail, IconSend} from '@douyinfe/semi-icons';
-import {Navigate, useLocation, useNavigate, useSearchParams} from 'react-router-dom';
-import {useAuth} from '../lib/context/hooks';
-import {Path} from '../lib/constants/paths';
-import {getServerApi, handleResponse} from '../api/utils';
+import { FC, useEffect, useState } from 'react';
+import { Button, Card, Collapsible, Divider, Modal, PinCode, Space, Toast, Typography } from '@douyinfe/semi-ui';
+import Icon, { IconArrowLeft, IconGithubLogo, IconMail } from '@douyinfe/semi-icons';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../lib/context/hooks';
+import { Path } from '../lib/constants/paths';
+import { getServerApi, handleResponse } from '../api/utils';
 // @ts-expect-error handle svg file
 import GoogleIcon from '@/assets/icons/google.svg?react';
 // @ts-expect-error handle svg file
-import PasskeyIcon from '@/assets/icons/passkey_16.svg?react';
-import {startAuthentication} from '@simplewebauthn/browser';
-import {UserResponseData} from '../api/generated';
-import {ValidateStatus as InputValidateStatus} from '@douyinfe/semi-ui/lib/es/input';
-import {getErrorMsg, isValidEmail} from '../utils';
+import PasskeyIcon from '@/assets/icons/passkey_white.svg?react';
+// @ts-expect-error handle svg file
+import FeishuIcon from '@/assets/icons/feishu.svg?react';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { UserResponseData } from '../api/generated';
+import { ValidateStatus as InputValidateStatus } from '@douyinfe/semi-ui/lib/es/input';
+import { getErrorMsg, isValidEmail } from '../utils';
+import { AuthMethod, OAuthPlatform } from "../interface/auth.ts";
+import { ButtonProps } from '@douyinfe/semi-ui/lib/es/button/Button';
 
-const borderRadius = '10px';
 
-enum LoginMethod {
-    Email,
-    Github,
-    Google,
-    Passkey
+const buttonProps: ButtonProps = {
+    block: true,
+    theme: 'outline',
+    type: 'tertiary',
+    style: {
+        borderRadius: '12px',
+        height: '42px',
+    }
 }
 
 const defaultLoadingState = {
-    [LoginMethod.Email]: false,
-    [LoginMethod.Github]: false,
-    [LoginMethod.Google]: false,
-    [LoginMethod.Passkey]: false,
+    [AuthMethod.Email]: false,
+    [AuthMethod.Github]: false,
+    [AuthMethod.Google]: false,
+    [AuthMethod.Feishu]: false,
+    [AuthMethod.Passkey]: false,
 }
 
 const LOGIN_SUCCESS_KEY = 'login_success';
 
 const Login: FC = () => {
-    const {user, setUser, token, setToken, isLoading: isAuthLoading} = useAuth();
+    const api = getServerApi();
+    const { user, setUser, token, setToken, initialized } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const from = location.state?.from?.pathname || Path.ROOT;
-    const [inputs, setInputs] = useState({email: '', code: ''});
+    const [inputs, setInputs] = useState({ email: '', code: '' });
     const [validateStatus, setValidateStatus] = useState<InputValidateStatus>('default');
     const [showVerifyCode, setShowVerifyCode] = useState(false);
+    const [passkeyWaiting, setPasskeyWaiting] = useState(false);
+    const [showMoreOptions, setShowMoreOptions] = useState(false);
 
     // 登录准备状态（禁用按钮）
-    const [preparing, setPreparing] = useState<Record<LoginMethod, boolean>>(defaultLoadingState);
+    const [preparing, setPreparing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
 
     // 登录处理状态（Card 的 loading 状态）
-    const [processing, setProcessing] = useState<Record<LoginMethod, boolean>>(defaultLoadingState);
-
-    // 处理过的 OAuth 回调验证码
-    const processedCode = useRef<string | null>(null);
+    const [processing, setProcessing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
 
     // 监听其他标签页的登录事件
     useEffect(() => {
@@ -61,7 +68,7 @@ const Login: FC = () => {
                 title: '登录状态改变',
                 content: '登录状态已改变，即将刷新页面',
                 onOk: () => window.location.reload(),
-                cancelButtonProps: {theme: 'borderless'},
+                cancelButtonProps: { theme: 'borderless' },
                 centered: true,
             });
         };
@@ -70,64 +77,11 @@ const Login: FC = () => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [navigate, from, token]);
 
-    const api = getServerApi();
 
-    useEffect(() => {
-        const handleCallback = async () => {
-            // 如果正在处理，不处理
-            if (Object.values(processing).some(Boolean)) return;
-
-            const isEmailCallback = searchParams.get('email_verification_callback') === '1';
-            const isGithubCallback = searchParams.get('github_callback') === '1';
-            const isGoogleCallback = searchParams.get('google_callback') === '1';
-
-            // 如果不是任何一种回调，不处理
-            if (!isGithubCallback && !isGoogleCallback && !isEmailCallback) return;
-
-            const email = searchParams.get('email');
-            const code = searchParams.get('code');
-            const state = searchParams.get('state');
-
-            // 如果没有 code，不处理（因为任何一种回调都需要 code）
-            if (!code) return;
-
-            // 如果已经处理过，不处理
-            if (processedCode.current === code) return;
-
-            // === 处理邮箱验证码 ===
-            if (email && isEmailCallback) {
-                processedCode.current = code;
-                handleVerifyCodeLogin({email, code});
-            }
-
-            // === 处理 OAuth 回调 ===
-
-            // 如果没有 state，不处理
-            if (!state) return;
-
-            // 处理 Github 或 Google 回调
-            const platform = isGithubCallback ? LoginMethod.Github : LoginMethod.Google;
-
-            // 清空搜索参数
-            setSearchParams({});
-
-            // 记录处理过的 code，防止重复处理
-            processedCode.current = code;
-
-            // 处理回调
-            await handleOauthCallback(platform, code, state);
-        };
-
-        handleCallback();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
-
-    if (!isAuthLoading && token && user) {
-        return <Navigate to={from} replace/>;
+    if (initialized && token && user) {
+        const to = searchParams.get('redirect') || from || Path.ROOT;
+        return <Navigate to={to} replace />;
     }
-
-
-    /* ------------------------------ auth step1 ------------------------------ */
 
     // 发送邮箱验证码
     const sendVerifyCode = async () => {
@@ -137,99 +91,118 @@ const Login: FC = () => {
         }
 
         if (!isValidEmail(inputs.email)) {
-            Toast.error({content: '请输入有效的邮箱地址', stack: true});
+            Toast.error({ content: '请输入有效的邮箱地址', stack: true });
             setValidateStatus('error');
             return;
         }
 
         try {
-            setPreparing({...preparing, [LoginMethod.Email]: true});
-            await handleResponse(api.authentication.authControllerSendEmailLoginCode({requestBody: {email: inputs.email}}), {
+            setPreparing({ ...preparing, [AuthMethod.Email]: true });
+            await handleResponse(api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
                     setShowVerifyCode(true);
-                    Toast.success({content: '验证码已发送', stack: true});
+                    Toast.success({ content: '验证码已发送', stack: true });
                 },
                 onError: (errorMsg) => {
-                    Toast.error({content: errorMsg, stack: true});
+                    Toast.error({ content: errorMsg, stack: true });
                 }
             });
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '发送验证码失败'), stack: true});
+            Toast.error({ content: getErrorMsg(error, '发送验证码失败'), stack: true });
         } finally {
-            setPreparing({...preparing, [LoginMethod.Email]: false});
+            setPreparing({ ...preparing, [AuthMethod.Email]: false });
         }
     };
 
     // 通用 OAuth 登录前处理
-    const handleOauthLoginClick = async (platform: LoginMethod.Github | LoginMethod.Google) => {
-        setPreparing({...preparing, [platform]: true});
+    const handleOauthLoginClick = async (platform: OAuthPlatform) => {
+        if (Object.values(preparing).some(Boolean)) {
+            return;
+        }
+
+        setPreparing({ ...preparing, [platform]: true });
         try {
             switch (platform) {
-                case LoginMethod.Github:
-                    await handleResponse(api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig(), {
+                case AuthMethod.Github:
+                    await handleResponse(api.gitHubAuthentication.gitHubAuthControllerGetGithubConfig({ action: 'login' }), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
                         onError: (errorMsg) => {
-                            Toast.error({content: errorMsg, stack: true})
+                            Toast.error({ content: errorMsg, stack: true })
                         }
                     });
                     break;
-                case LoginMethod.Google:
-                    await handleResponse(api.googleAuthentication.googleAuthControllerGetGoogleConfig(), {
+                case AuthMethod.Google:
+                    await handleResponse(api.googleAuthentication.googleAuthControllerGetGoogleConfig({ action: 'login' }), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
                         onError: (errorMsg) => {
-                            Toast.error({content: errorMsg, stack: true})
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
+                    });
+                    break;
+                case AuthMethod.Feishu:
+                    await handleResponse(api.feishuAuthentication.feishuAuthControllerGetFeishuConfig({ action: 'login' }), {
+                        onSuccess: (data) => window.location.href = data.oauthUrl,
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
                         }
                     });
                     break;
                 default:
-                    Toast.error({content: '无效的登录方式', stack: true});
+                    Toast.error({ content: '无效的登录方式', stack: true });
             }
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '登录失败'), stack: true});
+            Toast.error({ content: getErrorMsg(error, '登录失败'), stack: true });
             // 只在错误时重置状态，因为如果成功，就重定向走了，不需要重置
             // 如果在 finally 中重置，会导致还没有重定向完成就解除 loading 状态
-            setPreparing({...preparing, [platform]: false});
+            setPreparing({ ...preparing, [platform]: false });
         }
     };
 
     // Passkey 登录
     const handlePasskeyLogin = async () => {
-        setPreparing({...preparing, [LoginMethod.Passkey]: true});
+        if (Object.values(preparing).some(Boolean)) {
+            return;
+        }
+
+        setPreparing({ ...preparing, [AuthMethod.Passkey]: true });
         const passkeyApi = getServerApi().passkeyAuthentication;
         try {
             // 1. 从服务器获取认证选项
             const optionsResponse = await passkeyApi.passkeyControllerGenerateAuthenticationOptions();
-            const {success: optionsSuccess, data: optionsData, msg: optionsMsg} = optionsResponse;
+            const { success: optionsSuccess, data: optionsData, msg: optionsMsg } = optionsResponse;
             if (!optionsSuccess) {
                 throw new Error(optionsMsg);
             }
-            const {options: optionsJSON, state} = optionsData;
+            const { options: optionsJSON, state } = optionsData;
 
             // 2. 启动认证流程，让用户选择他们的 passkey
-            const authResponse = await startAuthentication({optionsJSON});
+            // 2.1 passkey 已经取回, 等待用户交互结果
+            setPasskeyWaiting(true);
+            const authResponse = await startAuthentication({ optionsJSON });
 
             // 3. 将认证响应发送到服务器进行验证
-            setPreparing({...preparing, [LoginMethod.Passkey]: false});
-            setProcessing({...processing, [LoginMethod.Passkey]: true});
+            setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
+            setProcessing({ ...processing, [AuthMethod.Passkey]: true });
             const response = await passkeyApi.passkeyControllerVerifyAuthenticationResponse({
                 state,
                 requestBody: authResponse
             });
 
             // 4. 处理服务器响应
-            const {success: responseSuccess, data: responseData, msg: responseMsg} = response;
+            const { success: responseSuccess, data: responseData, msg: responseMsg } = response;
             if (!responseSuccess) {
                 throw new Error(responseMsg);
             } else {
-                setProcessing({...processing, [LoginMethod.Passkey]: false});
+                setProcessing({ ...processing, [AuthMethod.Passkey]: false });
                 handleLoginResponse(responseData);
             }
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '认证失败'), stack: true});
+            Toast.error({ content: getErrorMsg(error, '认证失败'), stack: true });
         } finally {
             // 无论是否成功，都要重置状态
-            setPreparing({...preparing, [LoginMethod.Passkey]: false});
-            setProcessing({...processing, [LoginMethod.Passkey]: false});
+            setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
+            setProcessing({ ...processing, [AuthMethod.Passkey]: false });
+            setPasskeyWaiting(false);
         }
     };
 
@@ -237,74 +210,36 @@ const Login: FC = () => {
 
     // 验证邮箱验证码
     const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
-        setProcessing({...processing, [LoginMethod.Email]: true});
+        setProcessing({ ...processing, [AuthMethod.Email]: true });
         try {
-            await handleResponse(api.authentication.authControllerLogin({requestBody: values}), {
+            await handleResponse(api.authentication.authControllerLogin({ requestBody: values }), {
                 onSuccess: (data) => handleLoginResponse(data),
                 onError: (errorMsg) => {
-                    setInputs({...inputs, code: ''});
-                    Toast.error({content: errorMsg, stack: true});
+                    setInputs({ ...inputs, code: '' });
+                    Toast.error({ content: errorMsg, stack: true });
                 }
             });
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '登录失败'), stack: true});
+            Toast.error({ content: getErrorMsg(error, '登录失败'), stack: true });
         } finally {
-            setProcessing({...processing, [LoginMethod.Email]: false});
+            setProcessing({ ...processing, [AuthMethod.Email]: false });
         }
     };
 
-    // 通用 OAuth 登录回调
-    const handleOauthCallback = async (platform: LoginMethod.Github | LoginMethod.Google, code: string, state: string) => {
-        try {
-            setProcessing({...processing, [platform]: true});
-            switch (platform) {
-                case LoginMethod.Github:
-                    await handleResponse(api.gitHubAuthentication.gitHubAuthControllerGithubLogin({
-                        requestBody: {
-                            code,
-                            state
-                        }
-                    }), {
-                        onSuccess: (data) => handleLoginResponse(data),
-                        onError: (errorMsg) => {
-                            Toast.error({content: errorMsg, stack: true})
-                        }
-                    });
-                    break;
-                case LoginMethod.Google:
-                    await handleResponse(api.googleAuthentication.googleAuthControllerGoogleLogin({
-                        requestBody: {
-                            code,
-                            state
-                        }
-                    }), {
-                        onSuccess: (data) => handleLoginResponse(data),
-                        onError: (errorMsg) => {
-                            Toast.error({content: errorMsg, stack: true})
-                        }
-                    });
-                    break;
-            }
-        } catch (error) {
-            Toast.error({content: getErrorMsg(error, '登录失败'), stack: true});
-        } finally {
-            setProcessing({...processing, [platform]: false});
-        }
-    };
 
     /* ------------------------------ auth step3 ------------------------------ */
 
     // 通用登录处理
     const handleLoginResponse = (data: { user: UserResponseData, token: string }) => {
-        const {user, token} = data;
+        const { user, token } = data;
         setUser(user);
         setToken(token);
 
         // 通知其他标签页
         localStorage.setItem(LOGIN_SUCCESS_KEY, Date.now().toString());
 
-        navigate(from, {replace: true});
-        Toast.success({content: '登录成功', stack: true});
+        navigate(from, { replace: true });
+        Toast.success({ content: '登录成功', stack: true });
     };
 
     /* ------------------------------ handle events ------------------------------ */
@@ -312,7 +247,7 @@ const Login: FC = () => {
     // 返回邮箱输入
     const backToEmailInput = () => {
         setShowVerifyCode(false);
-        setInputs({...inputs, code: ''});
+        setInputs({ ...inputs, code: '' });
     };
 
     /* ------------------------------ render components ------------------------------ */
@@ -323,136 +258,155 @@ const Login: FC = () => {
             vertical
             spacing='medium'
             align='start'
-            style={{width: '100%'}}
+            style={{ width: '100%' }}
         >
-            <Space spacing={2}>
+            <Space spacing={8} align="center">
                 <Button
-                    icon={<IconArrowLeft/>}
+                    icon={<IconArrowLeft />}
                     theme="borderless"
                     onClick={backToEmailInput}
+                    style={{
+                        borderRadius: '8px',
+                        transition: 'all 0.2s ease'
+                    }}
                 />
-                <Typography.Text strong>
-                    {inputs.email}
-                </Typography.Text>
+                <div>
+                    <Typography.Text strong style={{ fontSize: '16px' }}>
+                        {inputs.email}
+                    </Typography.Text>
+                    <Typography.Text type="tertiary" size="small" style={{ display: 'block', marginTop: '2px' }}>
+                        验证码已发送
+                    </Typography.Text>
+                </div>
             </Space>
-            <Typography.Text type="secondary">
+            <Typography.Text type="secondary" style={{ fontSize: '14px', lineHeight: '1.5' }}>
                 请输入邮箱验证码（10分钟内有效）
             </Typography.Text>
-            <PinCode
-                size="large"
-                autoFocus
-                format={/[A-Z]|[0-9]|[a-z]/}
-                onComplete={(value) => handleVerifyCodeLogin({email: inputs.email, code: value})}
-                onChange={(value) => setInputs({...inputs, code: value.toUpperCase()})}
-                value={inputs.code}
-            />
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
+                <PinCode
+                    size="large"
+                    autoFocus
+                    format={/[A-Z]|[0-9]|[a-z]/}
+                    onComplete={(value) => handleVerifyCodeLogin({ email: inputs.email, code: value })}
+                    onChange={(value) => setInputs({ ...inputs, code: value.toUpperCase() })}
+                    value={inputs.code}
+                    style={{ borderRadius: '8px' }}
+                />
+            </div>
         </Space>
     );
 
-    // 渲染邮箱输入
-    const renderEmailInput = () => (
-        <Space vertical spacing='medium' style={{width: '100%'}}>
-            <Input
-                size="large"
-                placeholder="邮箱地址"
-                prefix={<IconMail style={{color: 'var(--semi-color-text-2)'}}/>}
-                style={{borderRadius}}
-                value={inputs.email}
-                validateStatus={validateStatus}
-                onChange={(value) => setInputs({...inputs, email: value})}
-                autoComplete="email"
-            />
-            {inputs.email ? (
-                <Button
-                    size="large"
-                    block
-                    icon={<IconSend/>}
-                    style={{borderRadius}}
-                    onClick={sendVerifyCode}
-                    loading={preparing[LoginMethod.Email]}
-                    disabled={!preparing[LoginMethod.Email] && Object.values(preparing).some(Boolean)}
-                >
-                    发送验证码
-                </Button>
-            ) : (
-                <Button
-                    size="large"
-                    block
-                    style={{borderRadius}}
-                    onClick={handlePasskeyLogin}
-                    icon={<Icon svg={<PasskeyIcon/>}/>}
-                    loading={preparing[LoginMethod.Passkey]}
-                    disabled={!preparing[LoginMethod.Passkey] && Object.values(preparing).some(Boolean)}
-                >
-                    使用通行密钥登录
-                </Button>
-            )}
-            <Divider>或</Divider>
-            <Button
-                size="large"
-                type="tertiary"
-                block
-
-                style={{borderRadius}}
-                icon={<IconGithubLogo style={{color: '#000000'}}/>}
-                onClick={() => handleOauthLoginClick(LoginMethod.Github)}
-                loading={preparing[LoginMethod.Github]}
-                disabled={!preparing[LoginMethod.Github] && Object.values(preparing).some(Boolean)}
-            >
-                使用 GitHub 继续
-            </Button>
-            <Button
-                size="large"
-                type="tertiary"
-                block
-                style={{borderRadius}}
-                icon={<Icon svg={<GoogleIcon/>}/>}
-                onClick={() => handleOauthLoginClick(LoginMethod.Google)}
-                loading={preparing[LoginMethod.Google]}
-                disabled={!preparing[LoginMethod.Google] && Object.values(preparing).some(Boolean)}
-            >
-                使用 Google 继续
-            </Button>
-        </Space>
-    );
-
-    // 渲染登录内容
-    const renderContent = () => (
-        <Card
-            style={{
-                width: '100%',
-                maxWidth: 450,
-                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-                padding: '24px 32px',
-                borderRadius: '12px',
-                border: 'none'
-            }}>
-            <Spin
-                tip={
-                    <div style={{marginTop: 24}}>
-                        登录中...
-                    </div>
-                }
-                size="large"
-                spinning={Object.values(processing).some(Boolean)}
-            >
-                <Space vertical spacing='loose' style={{width: '100%'}}>
-                    <Typography.Title heading={2}>登录/注册</Typography.Title>
-                    {showVerifyCode ? renderVerifyCodeInput() : renderEmailInput()}
-                </Space>
-            </Spin>
-        </Card>
-    );
 
     return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-            width: '100%',
-        }}>
-            {renderContent()}
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                width: '100%',
+            }}
+        >
+            <Card
+                style={{
+                    width: '100%',
+                    maxWidth: 400,
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    borderRadius: '24px',
+                    border: 'none'
+                }}
+                bodyStyle={{
+                    padding: '48px 42px',
+                }}
+            >
+
+                <Space style={{ marginBottom: 24, width: '100%' }}>
+                    <Typography.Title heading={3}>
+                        Sign in
+                    </Typography.Title>
+                    {/* <Typography.Title heading={3}>
+                        {import.meta.env.VITE_APP_NAME}
+                    </Typography.Title> */}
+                </Space>
+                <Space vertical spacing={8} style={{ width: '100%' }}>
+
+                    <Button
+                        {...buttonProps}
+                        type="primary"
+                        theme='solid'
+                        onClick={handlePasskeyLogin}
+                        icon={<Icon svg={<PasskeyIcon />} />}
+                        loading={preparing[AuthMethod.Passkey]}
+                    >
+                        {passkeyWaiting ?
+                            'Waiting for input...'
+                            // 'Waiting for input from browser interaction...'
+                            :
+                            'Sign in with Passkey'
+                        }
+                    </Button>
+
+                    <Divider
+                        style={{
+                            color: 'var(--semi-color-text-2)',
+                            margin: '12px 0 6px 0',
+                        }}
+                    >
+                        OR
+                    </Divider>
+                    <Button
+                        {...buttonProps}
+                        icon={<Icon svg={<FeishuIcon />} />}
+                        onClick={() => handleOauthLoginClick(AuthMethod.Feishu)}
+                        loading={preparing[AuthMethod.Feishu]}
+                    >
+                        Continue with Feishu
+                    </Button>
+
+
+                    <Collapsible isOpen={showMoreOptions} style={{ width: '100%' }}>
+                        <Space vertical spacing={8} style={{ width: '100%' }}>
+                            <Button
+                                {...buttonProps}
+                                icon={<Icon svg={<GoogleIcon />} />}
+                                onClick={() => handleOauthLoginClick(AuthMethod.Google)}
+                                loading={preparing[AuthMethod.Google]}
+                            >
+                                Continue with Google
+                            </Button>
+                            <Button
+                                {...buttonProps}
+                                icon={<IconGithubLogo size='large' style={{ color: '#000' }} />}
+                                onClick={() => handleOauthLoginClick(AuthMethod.Github)}
+                                loading={preparing[AuthMethod.Github]}
+                            >
+                                Continue with GitHub
+                            </Button>
+                            <Button
+                                {...buttonProps}
+                                icon={<IconMail size='large' style={{ color: '#000' }} />}
+                                onClick={() => handleOauthLoginClick(AuthMethod.Github)}
+                                loading={preparing[AuthMethod.Github]}
+                            >
+                                Continue with Email&nbsp;&nbsp;
+                            </Button>
+                        </Space>
+                    </Collapsible>
+                    {!showMoreOptions && (
+                        <Typography.Text
+                            size='small'
+                            onClick={() => setShowMoreOptions(!showMoreOptions)}
+                            style={{
+                                color: 'var(--semi-color-text-2)',
+                                cursor: 'pointer'
+                            }}
+                            strong
+                        >
+                            More options
+                        </Typography.Text>
+                    )}
+                </Space>
+            </Card>
         </div>
     );
 };

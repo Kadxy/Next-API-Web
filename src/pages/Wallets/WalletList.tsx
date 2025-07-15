@@ -117,7 +117,7 @@ const WalletList: FC = () => {
             dataIndex: 'creditLimit',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit)
+            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit,undefined, true),
         },
         {
             title: '操作',

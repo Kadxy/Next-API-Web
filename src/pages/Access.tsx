@@ -20,7 +20,7 @@ const Access = () => {
     const [apiKey, setApiKey] = useState<string>('YOUR_API_KEY');
     const [model, setModel] = useState<string>('gpt-4.1');
     const [stream, setStream] = useState<boolean>(false);
-    const baseUrl = 'https://api.openai-next.com';
+    const baseUrl = 'https://cn.api-grip.com';
 
     // 复制代码到剪贴板
     const CopyButton = ({ text, style }: { text: string, style: React.CSSProperties }) => {

@@ -7,56 +7,56 @@ import type { LoginResponseDto } from '../models/LoginResponseDto';
 import type { UserResponseDto } from '../models/UserResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class GoogleAuthenticationService {
+export class FeishuAuthenticationService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * Get Google OAuth Config
+     * Get Feishu OAuth Config
      * @returns any
      * @throws ApiError
      */
-    public googleAuthControllerGetGoogleConfig({
+    public feishuAuthControllerGetFeishuConfig({
         action,
     }: {
         action: string,
     }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/auth/google/config/{action}',
+            url: '/auth/feishu/config/{action}',
             path: {
                 'action': action,
             },
         });
     }
     /**
-     * Google OAuth Login
+     * Feishu OAuth Login
      * @returns LoginResponseDto
      * @throws ApiError
      */
-    public googleAuthControllerGoogleLogin({
+    public feishuAuthControllerFeishuLogin({
         requestBody,
     }: {
         requestBody: IOAuth2LoginDto,
     }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/auth/google/login',
+            url: '/auth/feishu/login',
             body: requestBody,
             mediaType: 'application/json',
         });
     }
     /**
-     * Google OAuth Bind
+     * Feishu OAuth Bind
      * @returns UserResponseDto
      * @throws ApiError
      */
-    public googleAuthControllerGoogleBind({
+    public feishuAuthControllerFeishuBind({
         requestBody,
     }: {
         requestBody: IOAuth2LoginDto,
     }): CancelablePromise<UserResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/auth/google/bind',
+            url: '/auth/feishu/bind',
             body: requestBody,
             mediaType: 'application/json',
         });

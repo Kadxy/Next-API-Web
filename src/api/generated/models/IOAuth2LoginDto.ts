@@ -2,13 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type GoogleAuthDto = {
+export type IOAuth2LoginDto = {
     /**
-     * Google OAuth授权码
+     * OAuth code
      */
     code: string;
     /**
-     * Google OAuth授权状态
+     * OAuth state
      */
     state: string;
 };
