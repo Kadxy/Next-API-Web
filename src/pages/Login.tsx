@@ -240,7 +240,8 @@ const Login: FC = () => {
                 passkeyApi, {
                 onSuccess: async (data) => {
                     if (!data) {
-                        console.log('no passkey config for current email');
+                        // 切换到邮箱验证码流程
+                        await sendVerifyCode();
                         return;
                     }
 

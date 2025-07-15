@@ -1,14 +1,16 @@
-import { FC, useEffect, useState } from 'react';
+import {FC, useEffect, useState} from 'react';
 import AuthContext from './AuthContext';
-import { STORE_KEYS } from '../constants/store';
-import { getServerApi, handleResponse } from '../../api/utils';
-import { ProviderProps } from './hooks';
-import { UserResponseData } from '../../api/generated';
+import {STORE_KEYS} from '../constants/store';
+import {getServerApi, handleResponse} from '../../api/utils';
+import {ProviderProps} from './hooks';
+import {UserResponseData} from '../../api/generated';
+// import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
-const AuthProvider: FC<ProviderProps> = ({ children }) => {
+const AuthProvider: FC<ProviderProps> = ({children}) => {
     const [user, setUser] = useState<UserResponseData | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [initialized, setInitialized] = useState(false);
+
 
     useEffect(() => {
         initAuth();
@@ -31,6 +33,10 @@ const AuthProvider: FC<ProviderProps> = ({ children }) => {
 
         // 调用API验证令牌有效性并获取最新的用户信息
         try {
+            // const fp = await FingerprintJS.load();
+            // const {visitorId} = await fp.get();
+            // console.log(visitorId)
+
             await handleResponse(getServerApi().authentication.authControllerAccount(), {
                 onSuccess: updateUser,
                 onError: (msg) => {
