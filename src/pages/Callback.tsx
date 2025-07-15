@@ -1,5 +1,5 @@
 import { FC, useEffect, useRef, useState } from 'react';
-import { Button, Card, Space, Toast, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Modal, Space, Toast, Typography } from '@douyinfe/semi-ui';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
@@ -30,6 +30,7 @@ const Callback: FC = () => {
 
     const api = getServerApi();
 
+    // 计时器
     useEffect(() => {
         const interval = setInterval(() => {
             setProcessedDuration(processedDuration + 1000);
@@ -38,7 +39,38 @@ const Callback: FC = () => {
         return () => clearInterval(interval);
     }, [processedDuration]);
 
+    // 处理回调
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const email = urlParams.get('email');
+
+        // 创建唯一标识符 - 基于URL和路径参数，避免null值影响
+        const callbackId = `${platform}-${action}-${window.location.search}`;
+
+        // 防止重复处理
+        if (processedRef.current === callbackId) {
+            return;
+        }
+
+        if (error) {
+            // 设置处理标记，防止重复弹窗
+            processedRef.current = callbackId;
+
+            Modal.error({
+                title: 'Callback Error',
+                content: `There was an error processing your request. \nPlease try again later. [error: ${error}]`,
+                onOk: () => {
+                    navigate(Path.ROOT, { replace: true });
+                },
+                zIndex: 10000,
+                centered: true,
+            });
+            return;
+        }
+
         // 如果没有必需的路径参数，跳过
         if (!platform || !action) {
             return;
@@ -49,23 +81,11 @@ const Callback: FC = () => {
             return;
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const email = urlParams.get('email') || undefined;
-
         // 如果没有必需的查询参数，跳过
         if (!code || !state) {
             return;
         }
 
-        // 创建唯一标识符
-        const callbackId = `${platform}-${action}-${code}`;
-
-        // 防止重复处理
-        if (processedRef.current === callbackId) {
-            return;
-        }
 
         const handleCallback = async () => {
             // 设置处理标志
@@ -113,9 +133,9 @@ const Callback: FC = () => {
                 const authMethod = platformMap[platform as keyof typeof platformMap];
 
                 if (action === 'login') {
-                    await handleAuthLogin(authMethod, { code, state, email });
+                    await handleAuthLogin(authMethod, { code, state, email: email || undefined });
                 } else {
-                    await handleAuthBind(authMethod, { code, state, email });
+                    await handleAuthBind(authMethod, { code, state, email: email || undefined });
                 }
             } catch (error) {
                 Toast.error({ content: getErrorMsg(error, 'Failed to process callback'), stack: true });
