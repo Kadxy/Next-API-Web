@@ -42,10 +42,10 @@ const Callback: FC = () => {
     // 处理回调
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const email = urlParams.get('email');
+        const error = urlParams.get('error') || undefined;
+        const code = urlParams.get('code') || undefined;
+        const state = urlParams.get('state') || undefined;
+        const email = urlParams.get('email') || undefined;
 
         // 创建唯一标识符 - 基于URL和路径参数，避免null值影响
         const callbackId = `${platform}-${action}-${window.location.search}`;
@@ -73,6 +73,8 @@ const Callback: FC = () => {
 
         // 如果没有必需的路径参数，跳过
         if (!platform || !action) {
+            Toast.error({ content: 'Invalid platform or action', stack: true });
+            navigate(Path.LOGIN, { replace: true });
             return;
         }
 
@@ -82,7 +84,9 @@ const Callback: FC = () => {
         }
 
         // 如果没有必需的查询参数，跳过
-        if (!code || !state) {
+        if (!code || (!email && !state)) {
+            Toast.error({ content: 'Invalid callback parameters', stack: true });
+            navigate(Path.LOGIN, { replace: true });
             return;
         }
 
@@ -133,9 +137,9 @@ const Callback: FC = () => {
                 const authMethod = platformMap[platform as keyof typeof platformMap];
 
                 if (action === 'login') {
-                    await handleAuthLogin(authMethod, { code, state, email: email || undefined });
+                    await handleAuthLogin(authMethod, { code, state, email });
                 } else {
-                    await handleAuthBind(authMethod, { code, state, email: email || undefined });
+                    await handleAuthBind(authMethod, { code, state, email });
                 }
             } catch (error) {
                 Toast.error({ content: getErrorMsg(error, 'Failed to process callback'), stack: true });
@@ -153,9 +157,9 @@ const Callback: FC = () => {
     }, [platform, action, user, token, initialized, navigate]);
 
     // 认证登录处理（包括OAuth和Email）
-    const handleAuthLogin = async (platform: AuthMethod, query: { code: string, state: string, email?: string }) => {
+    const handleAuthLogin = async (platform: AuthMethod, query: { code?: string, state?: string, email?: string }) => {
 
-        const { code, state, email } = query;
+        const { code = '', state = '', email = '' } = query;
         try {
             switch (platform) {
                 case AuthMethod.Github:
@@ -215,8 +219,8 @@ const Callback: FC = () => {
     };
 
     // 认证绑定处理（包括OAuth和Email）
-    const handleAuthBind = async (platform: AuthMethod, query: { code: string, state: string, email?: string }) => {
-        const { code, state } = query;
+    const handleAuthBind = async (platform: AuthMethod, query: { code?: string, state?: string, email?: string }) => {
+        const { code = '', state = '', email = '' } = query;
         try {
             switch (platform) {
                 case AuthMethod.Github:
@@ -253,7 +257,15 @@ const Callback: FC = () => {
                     });
                     break;
                 case AuthMethod.Email:
-                    // 邮箱绑定不需要处理
+                    await handleResponse(api.authentication.authControllerBindEmail({
+                        requestBody: { email, code }
+                    }), {
+                        onSuccess: (data) => handleBindResponse(data, 'Email'),
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true });
+                            navigate(Path.ACCOUNT, { replace: true });
+                        }
+                    });
                     break;
             }
         } catch (error) {

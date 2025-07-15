@@ -6,7 +6,7 @@ import { ListPasskeysResponseData } from '../../api/generated';
 import { getServerApi, handleResponse } from '../../api/utils';
 import { IllustrationNoContent, IllustrationNoContentDark } from '@douyinfe/semi-illustrations';
 // @ts-expect-error handle svg file
-import PasskeyIcon from '@/assets/icons/passkey_24.svg?react';
+import PasskeyIcon from '@/assets/icons/passkey.svg?react';
 import { getDayjsEasyRead, getDayjsFormat, getErrorMsg } from '../../utils';
 
 const { Text, Title } = Typography;
@@ -141,7 +141,10 @@ const PasskeyManager: FC = () => {
                 style={{ padding: 10 }}
                 main={(
                     <Space align='center'>
-                        <Icon svg={<PasskeyIcon />} />
+                        <Icon
+                            svg={<PasskeyIcon style={{ width: 24, height: 24 }} />}
+                            style={{ margin: '0 4px' }}
+                        />
                         <Space vertical align="start" spacing={2}>
                             <Title heading={6}>
                                 {passkey.displayName || passkey.id}

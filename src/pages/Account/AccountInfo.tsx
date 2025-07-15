@@ -127,13 +127,14 @@ const AccountInfo: FC = () => {
                                     render: (copied, doCopy, config) => {
                                         return (
                                             <Tag
-                                                color='grey'
+                                                color='white'
+                                                type='ghost'
                                                 prefixIcon={copied ? <IconTick /> : <IconIdentity />}
                                                 onClick={doCopy}
-                                                style={{ cursor: 'pointer' }}
+                                                style={{ cursor: 'pointer', padding: '8px 4px' }}
                                                 size='large'
                                             >
-                                                {copied ? '复制成功！' : config.content}&nbsp;
+                                                {copied ? '复制成功' : config.content}&nbsp;
                                             </Tag>
                                         );
                                     }

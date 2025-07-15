@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { EmailBindDto } from '../models/EmailBindDto';
 import type { EmailLoginDto } from '../models/EmailLoginDto';
 import type { GetPublicUserInfoResponseDto } from '../models/GetPublicUserInfoResponseDto';
 import type { LoginResponseDto } from '../models/LoginResponseDto';
@@ -24,7 +25,7 @@ export class AuthenticationService {
     }): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/auth/verification/email',
+            url: '/auth/email/login/send-verification-code',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -41,7 +42,41 @@ export class AuthenticationService {
     }): CancelablePromise<LoginResponseDto> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/auth/login/email',
+            url: '/auth/email/login/verify-code',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Send Email Bind Verification Code
+     * @returns any
+     * @throws ApiError
+     */
+    public authControllerSendEmailBindVerificationCode({
+        requestBody,
+    }: {
+        requestBody: SendEmailLoginCodeDto,
+    }): CancelablePromise<any> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/auth/email/bind/send-verify-code',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Bind Email
+     * @returns UserResponseDto
+     * @throws ApiError
+     */
+    public authControllerBindEmail({
+        requestBody,
+    }: {
+        requestBody: EmailBindDto,
+    }): CancelablePromise<UserResponseDto> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/auth/email/bind/verify-code',
             body: requestBody,
             mediaType: 'application/json',
         });

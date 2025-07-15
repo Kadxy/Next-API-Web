@@ -22,6 +22,7 @@ export type { CreateApiKeyResponseData } from './models/CreateApiKeyResponseData
 export type { CreateApiKeyResponseDto } from './models/CreateApiKeyResponseDto';
 export type { CreateRedemptionCodeDto } from './models/CreateRedemptionCodeDto';
 export type { CreateRedemptionCodeResponseDto } from './models/CreateRedemptionCodeResponseDto';
+export type { EmailBindDto } from './models/EmailBindDto';
 export type { EmailLoginDto } from './models/EmailLoginDto';
 export type { GetAllRedemptionCodesResponseDto } from './models/GetAllRedemptionCodesResponseDto';
 export type { GetPublicUserInfoResponseDto } from './models/GetPublicUserInfoResponseDto';

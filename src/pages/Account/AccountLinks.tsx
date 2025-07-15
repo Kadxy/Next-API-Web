@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Button, Card, Toast, Typography, Space, Avatar, Row, Col } from '@douyinfe/semi-ui';
+import { Button, Card, Toast, Typography, Space, Avatar, Row, Col, Input, Modal } from '@douyinfe/semi-ui';
 import Icon, { IconFeishuLogo, IconLink, IconMail, IconPhone } from '@douyinfe/semi-icons';
 import { useAuth } from '../../lib/context/hooks';
 import { getServerApi, handleResponse } from '../../api/utils';
@@ -26,6 +26,8 @@ interface AccountLinkItem {
 const AccountLinks: FC = () => {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [inputEmail, setInputEmail] = useState<string>('');
 
     const dataSource: AccountLinkItem[] = [
         {
@@ -111,7 +113,9 @@ const AccountLinks: FC = () => {
                     break;
                 case 'phone':
                 case 'email':
-                    Toast.info({ content: '该功能正在开发中', stack: true });
+                    // email 无需等待
+                    setIsLoading(prev => ({ ...prev, [type]: false }));
+                    setShowEmailModal(true);
                     break;
                 default:
                     Toast.error({ content: '暂不支持该类型的账号绑定', stack: true });
@@ -176,6 +180,37 @@ const AccountLinks: FC = () => {
                     </Col>
                 ))}
             </Row>
+            <Modal
+                title="绑定邮箱"
+                visible={showEmailModal}
+                onCancel={() => setShowEmailModal(false)}
+                afterClose={() => setInputEmail('')}
+                width={360}
+                centered
+                onOk={async () => {
+                    const co = getServerApi().authentication;
+                    await handleResponse(co.authControllerSendEmailBindVerificationCode({
+                        requestBody: { email: inputEmail }
+                    }), {
+                        onSuccess: () => {
+                            Toast.info({ content: '验证邮件已发送, 请在 12 小时内点击链接完成绑定', stack: true });
+                            setShowEmailModal(false);
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true });
+                        }
+                    });
+                }}
+            >
+                <Space vertical align="start" style={{ width: '100%' }}>
+                    <Input
+                        value={inputEmail}
+                        placeholder='请输入邮箱'
+                        onChange={(value) => setInputEmail(value)}
+                        size='large'
+                    />
+                </Space>
+            </Modal>
         </Card>
     );
 };
