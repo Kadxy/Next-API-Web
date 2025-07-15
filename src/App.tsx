@@ -72,7 +72,7 @@ const App = () => {
                     <Nav
                         header={<Header />}
                         selectedKeys={[currentPath]}
-                        style={{ height: '100%', maxWidth: 'max(150px, 12vw)' }}
+                        style={{ height: '100%', maxWidth: '200px' }}
                         items={items}
                         onSelect={(data) => navigate(data.itemKey as PathKey)}
                         footer={{

@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { Button, Card, Collapsible, Divider, Modal, PinCode, Space, Toast, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Collapsible, Divider, Input, Modal, PinCode, Space, Spin, Toast, Typography } from '@douyinfe/semi-ui';
 import Icon, { IconArrowLeft, IconGithubLogo, IconMail } from '@douyinfe/semi-icons';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
@@ -13,7 +13,6 @@ import PasskeyIcon from '@/assets/icons/passkey_white.svg?react';
 import FeishuIcon from '@/assets/icons/feishu.svg?react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { UserResponseData } from '../api/generated';
-import { ValidateStatus as InputValidateStatus } from '@douyinfe/semi-ui/lib/es/input';
 import { getErrorMsg, isValidEmail } from '../utils';
 import { AuthMethod, OAuthPlatform } from "../interface/auth.ts";
 import { ButtonProps } from '@douyinfe/semi-ui/lib/es/button/Button';
@@ -47,10 +46,12 @@ const Login: FC = () => {
     const [searchParams] = useSearchParams();
     const from = location.state?.from?.pathname || Path.ROOT;
     const [inputs, setInputs] = useState({ email: '', code: '' });
-    const [validateStatus, setValidateStatus] = useState<InputValidateStatus>('default');
-    const [showVerifyCode, setShowVerifyCode] = useState(false);
     const [passkeyWaiting, setPasskeyWaiting] = useState(false);
     const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+    // email login
+    const [emailSignInStep, setEmailSignInStep] = useState<'none' | 'email' | 'code'>('none');
+    const [resendTime, setResendTime] = useState(0);
 
     // 登录准备状态（禁用按钮）
     const [preparing, setPreparing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
@@ -77,6 +78,12 @@ const Login: FC = () => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [navigate, from, token]);
 
+    // 倒计时
+    useEffect(() => {
+        if (resendTime > 0) {
+            setTimeout(() => setResendTime(resendTime - 1), 1000);
+        }
+    }, [resendTime]);
 
     if (initialized && token && user) {
         const to = searchParams.get('redirect') || from || Path.ROOT;
@@ -86,13 +93,11 @@ const Login: FC = () => {
     // 发送邮箱验证码
     const sendVerifyCode = async () => {
         if (!inputs.email) {
-            setValidateStatus('error');
             return;
         }
 
         if (!isValidEmail(inputs.email)) {
-            Toast.error({ content: '请输入有效的邮箱地址', stack: true });
-            setValidateStatus('error');
+            Toast.error({ content: 'Please enter a valid email address', stack: true });
             return;
         }
 
@@ -100,15 +105,16 @@ const Login: FC = () => {
             setPreparing({ ...preparing, [AuthMethod.Email]: true });
             await handleResponse(api.authentication.authControllerSendEmailLoginCode({ requestBody: { email: inputs.email } }), {
                 onSuccess: () => {
-                    setShowVerifyCode(true);
-                    Toast.success({ content: '验证码已发送', stack: true });
+                    setResendTime(60);
+                    setEmailSignInStep('code');
+                    Toast.success({ content: 'Verification code sent', stack: true });
                 },
                 onError: (errorMsg) => {
                     Toast.error({ content: errorMsg, stack: true });
                 }
             });
         } catch (error) {
-            Toast.error({ content: getErrorMsg(error, '发送验证码失败'), stack: true });
+            Toast.error({ content: getErrorMsg(error, 'Failed to send verification code'), stack: true });
         } finally {
             setPreparing({ ...preparing, [AuthMethod.Email]: false });
         }
@@ -181,6 +187,7 @@ const Login: FC = () => {
             const authResponse = await startAuthentication({ optionsJSON });
 
             // 3. 将认证响应发送到服务器进行验证
+            setPasskeyWaiting(false);
             setPreparing({ ...preparing, [AuthMethod.Passkey]: false });
             setProcessing({ ...processing, [AuthMethod.Passkey]: true });
             const response = await passkeyApi.passkeyControllerVerifyAuthenticationResponse({
@@ -210,6 +217,11 @@ const Login: FC = () => {
 
     // 验证邮箱验证码
     const handleVerifyCodeLogin = async (values: { email: string, code: string }) => {
+        if (values.code.length !== 6) {
+            Toast.error({ content: 'Please enter a valid verification code', stack: true });
+            return;
+        }
+
         setProcessing({ ...processing, [AuthMethod.Email]: true });
         try {
             await handleResponse(api.authentication.authControllerLogin({ requestBody: values }), {
@@ -242,60 +254,7 @@ const Login: FC = () => {
         Toast.success({ content: '登录成功', stack: true });
     };
 
-    /* ------------------------------ handle events ------------------------------ */
-
-    // 返回邮箱输入
-    const backToEmailInput = () => {
-        setShowVerifyCode(false);
-        setInputs({ ...inputs, code: '' });
-    };
-
     /* ------------------------------ render components ------------------------------ */
-
-    // 渲染验证码输入
-    const renderVerifyCodeInput = () => (
-        <Space
-            vertical
-            spacing='medium'
-            align='start'
-            style={{ width: '100%' }}
-        >
-            <Space spacing={8} align="center">
-                <Button
-                    icon={<IconArrowLeft />}
-                    theme="borderless"
-                    onClick={backToEmailInput}
-                    style={{
-                        borderRadius: '8px',
-                        transition: 'all 0.2s ease'
-                    }}
-                />
-                <div>
-                    <Typography.Text strong style={{ fontSize: '16px' }}>
-                        {inputs.email}
-                    </Typography.Text>
-                    <Typography.Text type="tertiary" size="small" style={{ display: 'block', marginTop: '2px' }}>
-                        验证码已发送
-                    </Typography.Text>
-                </div>
-            </Space>
-            <Typography.Text type="secondary" style={{ fontSize: '14px', lineHeight: '1.5' }}>
-                请输入邮箱验证码（10分钟内有效）
-            </Typography.Text>
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
-                <PinCode
-                    size="large"
-                    autoFocus
-                    format={/[A-Z]|[0-9]|[a-z]/}
-                    onComplete={(value) => handleVerifyCodeLogin({ email: inputs.email, code: value })}
-                    onChange={(value) => setInputs({ ...inputs, code: value.toUpperCase() })}
-                    value={inputs.code}
-                    style={{ borderRadius: '8px' }}
-                />
-            </div>
-        </Space>
-    );
-
 
     return (
         <div
@@ -319,95 +278,171 @@ const Login: FC = () => {
                     padding: '48px 42px',
                 }}
             >
-
-                <Space style={{ marginBottom: 24, width: '100%' }}>
-                    <Typography.Title heading={3}>
-                        Sign in
-                    </Typography.Title>
-                    {/* <Typography.Title heading={3}>
-                        {import.meta.env.VITE_APP_NAME}
-                    </Typography.Title> */}
-                </Space>
-                <Space vertical spacing={8} style={{ width: '100%' }}>
-
-                    <Button
-                        {...buttonProps}
-                        type="primary"
-                        theme='solid'
-                        onClick={handlePasskeyLogin}
-                        icon={<Icon svg={<PasskeyIcon />} />}
-                        loading={preparing[AuthMethod.Passkey]}
-                    >
-                        {passkeyWaiting ?
-                            'Waiting for input...'
-                            // 'Waiting for input from browser interaction...'
-                            :
-                            'Sign in with Passkey'
-                        }
-                    </Button>
-
-                    <Divider
-                        style={{
-                            color: 'var(--semi-color-text-2)',
-                            margin: '12px 0 6px 0',
-                        }}
-                    >
-                        OR
-                    </Divider>
-                    <Button
-                        {...buttonProps}
-                        icon={<Icon svg={<FeishuIcon />} />}
-                        onClick={() => handleOauthLoginClick(AuthMethod.Feishu)}
-                        loading={preparing[AuthMethod.Feishu]}
-                    >
-                        Continue with Feishu
-                    </Button>
-
-
-                    <Collapsible isOpen={showMoreOptions} style={{ width: '100%' }}>
-                        <Space vertical spacing={8} style={{ width: '100%' }}>
+                <Spin
+                    tip='Verifying...'
+                    size='large'
+                    spinning={Object.values(processing).some(Boolean)}
+                >
+                    <Space vertical spacing={'medium'} style={{ width: '100%' }}>
+                        {emailSignInStep !== 'none' && (
                             <Button
-                                {...buttonProps}
-                                icon={<Icon svg={<GoogleIcon />} />}
-                                onClick={() => handleOauthLoginClick(AuthMethod.Google)}
-                                loading={preparing[AuthMethod.Google]}
+                                icon={<IconArrowLeft />}
+                                onClick={() => setEmailSignInStep(emailSignInStep === 'email' ? 'none' : 'email')}
+                                style={{
+                                    backgroundColor: 'var(--semi-color-bg-1)',
+                                    color: 'var(--semi-color-text-2)',
+                                    alignSelf: 'flex-start',
+                                    marginTop: -18
+                                }}
+                                noHorizontalPadding
+                                noVerticalPadding
                             >
-                                Continue with Google
+                                Back
                             </Button>
-                            <Button
-                                {...buttonProps}
-                                icon={<IconGithubLogo size='large' style={{ color: '#000' }} />}
-                                onClick={() => handleOauthLoginClick(AuthMethod.Github)}
-                                loading={preparing[AuthMethod.Github]}
-                            >
-                                Continue with GitHub
-                            </Button>
-                            <Button
-                                {...buttonProps}
-                                icon={<IconMail size='large' style={{ color: '#000' }} />}
-                                onClick={() => handleOauthLoginClick(AuthMethod.Github)}
-                                loading={preparing[AuthMethod.Github]}
-                            >
-                                Continue with Email&nbsp;&nbsp;
-                            </Button>
-                        </Space>
-                    </Collapsible>
-                    {!showMoreOptions && (
-                        <Typography.Text
-                            size='small'
-                            onClick={() => setShowMoreOptions(!showMoreOptions)}
-                            style={{
-                                color: 'var(--semi-color-text-2)',
-                                cursor: 'pointer'
-                            }}
-                            strong
+                        )}
+
+                        <Typography.Title
+                            heading={3}
+                            style={{ width: '100%', marginBottom: 12 }}
                         >
-                            More options
-                        </Typography.Text>
-                    )}
-                </Space>
+                            Sign in
+                        </Typography.Title>
+
+                        {emailSignInStep === 'email' && (
+                            <>
+                                <Input
+                                    size='large'
+                                    autoComplete='email webauthn'
+                                    autoFocus
+                                    prefix={<IconMail size='large' />}
+                                    type='email'
+                                    placeholder='Enter your email address'
+                                    value={inputs.email}
+                                    onChange={(value) => setInputs({ ...inputs, email: value })}
+                                    onEnterPress={() => sendVerifyCode()}
+                                    style={buttonProps.style}
+                                />
+                                <Button
+                                    {...buttonProps}
+                                    type="primary"
+                                    theme='light'
+                                    onClick={() => sendVerifyCode()}
+                                    loading={preparing[AuthMethod.Email]}
+                                    disabled={!inputs.email}
+                                >
+                                    Continue
+                                </Button>
+                            </>
+                        )}
+                        {emailSignInStep === 'code' && (
+                            <>
+                                <Typography.Text type="secondary">
+                                    Enter the verification code sent to&nbsp;
+                                    <Typography.Text strong>{inputs.email.slice(0, 1)}*****@******</Typography.Text>
+                                </Typography.Text>
+
+                                <div style={{ width: '100%', display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+                                    <PinCode
+                                        autoFocus
+                                        size="large"
+                                        format={/[A-Z]|[0-9]|[a-z]/}
+                                        onComplete={(value) => handleVerifyCodeLogin({ email: inputs.email, code: value })}
+                                        onChange={(value) => setInputs({ ...inputs, code: value.toUpperCase() })}
+                                        value={inputs.code}
+                                        style={{ borderRadius: '8px' }}
+                                    />
+                                </div>
+
+                                <Button
+                                    style={{ alignSelf: 'flex-end' }}
+                                    onClick={() => resendTime > 0 ? null : sendVerifyCode()}
+                                    loading={preparing[AuthMethod.Email]}
+                                    disabled={resendTime > 0}
+                                >
+                                    {resendTime > 0 ? `Resend in ${resendTime}s` : 'Resend code'}
+                                </Button>
+                            </>
+                        )}
+                        {emailSignInStep === 'none' && (
+                            <Space vertical spacing={8} style={{ width: '100%' }}>
+                                <Button
+                                    {...buttonProps}
+                                    type="primary"
+                                    theme='solid'
+                                    onClick={handlePasskeyLogin}
+                                    icon={<Icon svg={<PasskeyIcon />} />}
+                                    loading={preparing[AuthMethod.Passkey]}
+                                >
+                                    {passkeyWaiting ?
+                                        'Waiting for input...'
+                                        // 'Waiting for input from browser interaction...'
+                                        :
+                                        'Sign in with Passkey'
+                                    }
+                                </Button>
+                                <Divider
+                                    style={{
+                                        color: 'var(--semi-color-text-2)',
+                                        margin: '12px 0 6px 0',
+                                    }}
+                                >
+                                    OR
+                                </Divider>
+                                <Button
+                                    {...buttonProps}
+                                    icon={<Icon svg={<FeishuIcon />} />}
+                                    onClick={() => handleOauthLoginClick(AuthMethod.Feishu)}
+                                    loading={preparing[AuthMethod.Feishu]}
+                                >
+                                    Continue with Feishu
+                                </Button>
+                                <Collapsible isOpen={showMoreOptions} style={{ width: '100%' }}>
+                                    <Space vertical spacing={8} style={{ width: '100%' }}>
+                                        <Button
+                                            {...buttonProps}
+                                            icon={<Icon svg={<GoogleIcon />} />}
+                                            onClick={() => handleOauthLoginClick(AuthMethod.Google)}
+                                            loading={preparing[AuthMethod.Google]}
+                                        >
+                                            Continue with Google
+                                        </Button>
+                                        <Button
+                                            {...buttonProps}
+                                            icon={<IconGithubLogo size='large' style={{ color: '#000' }} />}
+                                            onClick={() => handleOauthLoginClick(AuthMethod.Github)}
+                                            loading={preparing[AuthMethod.Github]}
+                                        >
+                                            Continue with GitHub
+                                        </Button>
+                                        <Button
+                                            {...buttonProps}
+                                            icon={<IconMail size='large' />}
+                                            onClick={() => setEmailSignInStep('email')}
+                                            loading={preparing[AuthMethod.Email]}
+                                        >
+                                            Continue with Email&nbsp;&nbsp;
+                                        </Button>
+                                    </Space>
+                                </Collapsible>
+                                {!showMoreOptions && (
+                                    <Typography.Text
+                                        size='small'
+                                        onClick={() => setShowMoreOptions(!showMoreOptions)}
+                                        style={{
+                                            color: 'var(--semi-color-text-2)',
+                                            cursor: 'pointer'
+                                        }}
+                                        strong
+                                    >
+                                        More options
+                                    </Typography.Text>
+                                )}
+                            </Space>
+                        )}
+                    </Space>
+                </Spin>
             </Card>
-        </div>
+        </div >
     );
 };
 
