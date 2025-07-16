@@ -40,6 +40,10 @@ export type UserResponseData = {
      */
     feishuId: string;
     /**
+     * User Microsoft ID
+     */
+    microsoftId: string;
+    /**
      * User Created At
      */
     createdAt: string;

@@ -1,5 +1,5 @@
 import { FC, useEffect, useRef, useState } from 'react';
-import { Button, Card, Modal, Space, Toast, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Space, Toast, Typography } from '@douyinfe/semi-ui';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
@@ -14,10 +14,11 @@ import CheckIcon from '../assets/icons/check.svg?react';
 import LinkIcon from '../assets/icons/link.svg?react';
 // @ts-expect-error ignore svg import error
 import LockIcon from '../assets/icons/lock.svg?react';
+import { IconArrowLeft } from '@douyinfe/semi-icons';
 
 const LOGIN_SUCCESS_KEY = 'login_success';
 
-const availablePlatforms = ['github', 'google', 'feishu', 'email'];
+const availablePlatforms = ['github', 'google', 'feishu', 'microsoft', 'email'];
 const availableActions = ['login', 'bind'];
 
 const Callback: FC = () => {
@@ -27,6 +28,8 @@ const Callback: FC = () => {
     const processedRef = useRef<string | null>(null);
     const isProcessingRef = useRef(false);
     const [processedDuration, setProcessedDuration] = useState(0);
+    const hasErrorRef = useRef(false);
+    const [errorInfo, setErrorInfo] = useState<{ error?: string, description?: string }>({});
 
     const api = getServerApi();
 
@@ -43,6 +46,7 @@ const Callback: FC = () => {
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error') || undefined;
+        const error_description = urlParams.get('error_description') || undefined;
         const code = urlParams.get('code') || undefined;
         const state = urlParams.get('state') || undefined;
         const email = urlParams.get('email') || undefined;
@@ -55,18 +59,13 @@ const Callback: FC = () => {
             return;
         }
 
-        if (error) {
-            // 设置处理标记，防止重复弹窗
-            processedRef.current = callbackId;
+        processedRef.current = callbackId;
 
-            Modal.error({
-                title: 'Callback Error',
-                content: `There was an error processing your request. \nPlease try again later. [error: ${error}]`,
-                onOk: () => {
-                    navigate(Path.ROOT, { replace: true });
-                },
-                zIndex: 10000,
-                centered: true,
+        if (error) {
+            hasErrorRef.current = true;
+            setErrorInfo({
+                error: error,
+                description: error_description || undefined
             });
             return;
         }
@@ -131,6 +130,7 @@ const Callback: FC = () => {
                     github: AuthMethod.Github,
                     google: AuthMethod.Google,
                     feishu: AuthMethod.Feishu,
+                    microsoft: AuthMethod.Microsoft,
                     email: AuthMethod.Email,
                 };
 
@@ -175,6 +175,17 @@ const Callback: FC = () => {
                     break;
                 case AuthMethod.Google:
                     await handleResponse(api.googleAuthentication.googleAuthControllerGoogleLogin({
+                        requestBody: { code, state }
+                    }), {
+                        onSuccess: (data) => handleLoginResponse(data),
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true });
+                            navigate(Path.LOGIN, { replace: true });
+                        }
+                    });
+                    break;
+                case AuthMethod.Microsoft:
+                    await handleResponse(api.microsoftAuthentication.microsoftAuthControllerMicrosoftLogin({
                         requestBody: { code, state }
                     }), {
                         onSuccess: (data) => handleLoginResponse(data),
@@ -239,6 +250,17 @@ const Callback: FC = () => {
                         requestBody: { code, state }
                     }), {
                         onSuccess: (data) => handleBindResponse(data, 'Google'),
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true });
+                            navigate(Path.ACCOUNT, { replace: true });
+                        }
+                    });
+                    break;
+                case AuthMethod.Microsoft:
+                    await handleResponse(api.microsoftAuthentication.microsoftAuthControllerMicrosoftBind({
+                        requestBody: { code, state }
+                    }), {
+                        onSuccess: (data) => handleBindResponse(data, 'Microsoft'),
                         onError: (errorMsg) => {
                             Toast.error({ content: errorMsg, stack: true });
                             navigate(Path.ACCOUNT, { replace: true });
@@ -566,86 +588,86 @@ const Callback: FC = () => {
                         50% { background-position: 100% 50%; }
                         100% { background-position: 0% 50%; }
                     }
-                    
+
                     @keyframes floatLight {
                         0% { transform: rotate(0deg) translate(100px) rotate(0deg); }
                         100% { transform: rotate(360deg) translate(100px) rotate(-360deg); }
                     }
-                    
+
                     @keyframes floatBubble {
-                        0% { 
+                        0% {
                             transform: translateY(0) translateX(0) scale(0.8);
                             opacity: 0;
                         }
                         10% { opacity: 0.6; }
                         90% { opacity: 0.6; }
-                        100% { 
+                        100% {
                             transform: translateY(-120vh) translateX(50px) scale(1.2);
                             opacity: 0;
                         }
                     }
-                    
+
                     @keyframes shimmer {
                         0% { transform: translate(-100%, -100%) rotate(45deg); }
                         100% { transform: translate(100%, 100%) rotate(45deg); }
                     }
-                    
+
                     @keyframes rotate3d {
                         0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
                         100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
                     }
-                    
+
                     @keyframes rotate3dReverse {
                         0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
                         100% { transform: rotateX(-360deg) rotateY(-360deg) rotateZ(-360deg); }
                     }
-                    
+
                     @keyframes pulse3d {
-                        0%, 100% { 
+                        0%, 100% {
                             transform: translateZ(20px) scale(1);
                             box-shadow: 0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4);
                         }
-                        50% { 
+                        50% {
                             transform: translateZ(30px) scale(1.1);
                             box-shadow: 0 0 60px rgba(255,255,255,1), 0 0 120px rgba(255,255,255,0.6);
                         }
                     }
-                    
+
                     @keyframes iconFloat {
                         0%, 100% { transform: translateY(0) rotate(0deg); }
                         25% { transform: translateY(-5px) rotate(5deg); }
                         75% { transform: translateY(5px) rotate(-5deg); }
                     }
-                    
+
                     @keyframes particleOrbit {
-                        0% { 
+                        0% {
                             transform: rotate(0deg) translateX(60px) scale(1);
                             opacity: 0;
                         }
                         10% { opacity: 1; }
                         90% { opacity: 1; }
-                        100% { 
+                        100% {
                             transform: rotate(360deg) translateX(60px) scale(0);
                             opacity: 0;
                         }
                     }
-                    
+
                     @keyframes fadeInOut {
                         0%, 100% { opacity: 0.5; }
                         50% { opacity: 1; }
                     }
-                    
+
                     @keyframes fadeInButton {
-                        0% { 
-                            opacity: 0; 
-                            transform: translateY(20px); 
+                        0% {
+                            opacity: 0;
+                            transform: translateY(20px);
                         }
-                        100% { 
-                            opacity: 1; 
-                            transform: translateY(0); 
+                        100% {
+                            opacity: 1;
+                            transform: translateY(0);
                         }
                     }
-                    
+
                     /* 响应式优化 */
                     @media (max-width: 640px) {
                         .loading-card {
@@ -653,7 +675,7 @@ const Callback: FC = () => {
                             padding: 48px 32px;
                         }
                     }
-                    
+
                     /* 深色模式支持 */
                     @media (prefers-color-scheme: dark) {
                         .loading-card {
@@ -666,9 +688,145 @@ const Callback: FC = () => {
         </div>
     );
 
-    // 如果正在加载认证状态，显示加载界面
-    if (!initialized) {
-        return renderLoadingView();
+    // 渲染错误界面
+    const renderErrorView = () => (
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            width: '100%',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 9999,
+            background: '#f8f9fa',
+            overflow: 'hidden'
+        }}>
+
+
+            {/* 主卡片 */}
+            <Card style={{
+                width: '100%',
+                maxWidth: 330,
+                background: 'rgba(255, 255, 255, 0.95)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                padding: '56px 16px 0',
+                borderRadius: '16px',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+                animation: 'fadeInCard 0.5s ease-in-out'
+            }}>
+
+                <Space vertical spacing={32} align="center" style={{ width: '100%' }}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="56"
+                        height="56"
+                        viewBox="0 0 24 24"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <path
+                            fill="none"
+                            stroke="var(--semi-color-danger)"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2M9 10h.01M15 10h.01M9.5 15.05a3.5 3.5 0 0 1 5 0"
+                        />
+                    </svg>
+
+                    <Typography.Title heading={5} type='danger'>
+                        Oops, something went wrong!
+                    </Typography.Title>
+
+                    <div style={{
+                        fontWeight: 700,
+                        border: '1.5px solid var(--semi-color-danger)',
+                        borderRadius: 4,
+                        padding: '4px 8px',
+                        color: 'var(--semi-color-danger)',
+                        backgroundColor: 'var(--semi-color-danger-light-1)',
+                    }}>
+                        {errorInfo.error}
+                    </div>
+
+                    <Typography.Text type='quaternary'>
+                        {errorInfo.description || 'Unknown error, please try agease try again later.'}
+                    </Typography.Text>
+
+                    <Button
+                        size="large"
+                        block
+                        onClick={() => {
+                            const destination = action === 'login' ? Path.LOGIN : Path.ACCOUNT;
+                            navigate(destination, { replace: true });
+                        }}
+                        theme='solid'
+                        type='danger'
+                        style={{
+                            borderRadius: '24px',
+                            marginTop: 24,
+                            marginBottom: -20,
+                            padding: '16px 320px',
+                            height: '44px',
+                        }}
+                        icon={<IconArrowLeft />}
+                    >
+                        Back to {action === 'login' ? 'Login' : 'Account'}
+                    </Button>
+                </Space>
+
+
+                <style>{`
+                    @keyframes fadeInCard {
+                        0% { 
+                            opacity: 0; 
+                            transform: translateY(20px) scale(0.95); 
+                        }
+                        100% { 
+                            opacity: 1; 
+                            transform: translateY(0) scale(1); 
+                        }
+                    }
+
+                    @keyframes iconPulse {
+                        0%, 100% {
+                            transform: scale(1);
+                            filter: drop-shadow(0 0 12px rgba(234, 102, 102, 0.3));
+                        }
+                        50% {
+                            transform: scale(1.05);
+                            filter: drop-shadow(0 0 20px rgba(234, 102, 102, 0.5));
+                        }
+                    }
+
+                    /* 响应式优化 */
+                    @media (max-width: 640px) {
+                        .error-card {
+                            max-width: 90%;
+                            padding: 48px 32px;
+                        }
+                    }
+                `}</style>
+            </Card>
+        </div>
+    );
+
+    // 如果正在加载认证状态或者没有开始任何处理，不渲染任何内容
+    if (!initialized || processedRef.current === null) {
+        return null;
+    }
+
+    // 如果发生错误，显示错误界面
+    if (hasErrorRef.current) {
+        return renderErrorView();
     }
 
     // 显示处理中界面

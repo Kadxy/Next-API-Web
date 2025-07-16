@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { CSSProperties, FC, useEffect, useRef, useState } from 'react';
 import {
     Button,
     Card,
@@ -12,7 +12,7 @@ import {
     Toast,
     Typography
 } from '@douyinfe/semi-ui';
-import Icon, { IconGithubLogo, IconMail, IconSend } from '@douyinfe/semi-icons';
+import Icon, { IconGithubLogo, IconMail } from '@douyinfe/semi-icons';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/context/hooks';
 import { Path } from '../lib/constants/paths';
@@ -23,6 +23,8 @@ import GoogleIcon from '@/assets/icons/google.svg?react';
 import PasskeyIcon from '@/assets/icons/passkey.svg?react';
 // @ts-expect-error handle svg file
 import FeishuIcon from '@/assets/icons/feishu.svg?react';
+// @ts-expect-error handle svg file
+import MicrosoftIcon from '@/assets/icons/microsoft.svg?react';
 import {
     browserSupportsWebAuthn,
     browserSupportsWebAuthnAutofill,
@@ -41,14 +43,21 @@ const buttonProps: ButtonProps = {
     style: {
         borderRadius: '12px',
         height: '42px',
-    }
+    } as CSSProperties
 }
 
-const defaultLoadingState = {
+const buttonTextWrapperStyle: CSSProperties = {
+    minWidth: 160,
+    textAlign: 'left',
+    marginLeft: 8
+}
+
+const defaultLoadingState: Record<AuthMethod, boolean> = {
     [AuthMethod.Email]: false,
     [AuthMethod.Github]: false,
     [AuthMethod.Google]: false,
     [AuthMethod.Feishu]: false,
+    [AuthMethod.Microsoft]: false,
     [AuthMethod.Passkey]: false,
 }
 
@@ -71,10 +80,10 @@ const Login: FC = () => {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // 登录准备状态（禁用按钮）
-    const [preparing, setPreparing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
+    const [preparing, setPreparing] = useState<Record<Exclude<AuthMethod, AuthMethod.Passkey>, boolean>>(defaultLoadingState);
 
     // 登录处理状态（Card 的 loading 状态）
-    const [processing, setProcessing] = useState<Record<AuthMethod, boolean>>(defaultLoadingState);
+    const [processing, setProcessing] = useState<Record<AuthMethod.Passkey | AuthMethod.Email, boolean>>(defaultLoadingState);
 
     // passkey auth json
     const [passkeyConfig, setPasskeyConfig] = useState<{
@@ -199,6 +208,14 @@ const Login: FC = () => {
                     break;
                 case AuthMethod.Google:
                     await handleResponse(api.googleAuthentication.googleAuthControllerGetGoogleConfig({ action: 'login' }), {
+                        onSuccess: (data) => window.location.href = data.oauthUrl,
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true })
+                        }
+                    });
+                    break;
+                case AuthMethod.Microsoft:
+                    await handleResponse(api.microsoftAuthentication.microsoftAuthControllerGetMicrosoftConfig({ action: 'login' }), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
                         onError: (errorMsg) => {
                             Toast.error({ content: errorMsg, stack: true })
@@ -471,14 +488,14 @@ const Login: FC = () => {
                                 <Space spacing={'medium'} vertical style={{ width: '100%' }}>
                                     <Input
                                         size='large'
-                                        autoComplete='email username webauthn'
-                                        prefix={<IconMail size='large' />}
+                                        autoComplete='email webauthn'
                                         type='email'
                                         placeholder='Enter your email address'
                                         value={inputs.email}
                                         onChange={(value) => setInputs({ ...inputs, email: value })}
                                         onEnterPress={() => sendVerifyCode()}
                                         style={buttonProps.style}
+                                        autoFocus={false}
                                     />
                                     {inputs.email ? (
                                         <Button
@@ -486,7 +503,7 @@ const Login: FC = () => {
                                             type="primary"
                                             theme='solid'
                                             onClick={handleEmailAuth}
-                                            icon={<IconSend size='large' />}
+                                            icon={<IconMail size='large' />}
                                             loading={preparing[AuthMethod.Email]}
                                         >
                                             Continue with Email
@@ -498,14 +515,20 @@ const Login: FC = () => {
                                             theme='solid'
                                             onClick={() => performPasskeyAuthentication()}
                                             icon={<Icon svg={<PasskeyIcon />} />}
-                                            loading={preparing[AuthMethod.Passkey]}
+                                            loading={passkeyWaiting}
                                         >
-                                            {passkeyWaiting ?
-                                                'Waiting for input...'
-                                                // 'Waiting for input from browser interaction...'
-                                                :
-                                                'Sign in with Passkey'
-                                            }
+                                            <div
+                                                style={{
+                                                    ...buttonTextWrapperStyle,
+                                                    fontSize: passkeyWaiting ? 12 : undefined
+                                                }}
+                                            >
+                                                {passkeyWaiting ?
+                                                    'Waiting for input from browser interaction'
+                                                    :
+                                                    'Sign in with Passkey'
+                                                }
+                                            </div>
                                         </Button>
                                     )}
                                 </Space>
@@ -524,25 +547,41 @@ const Login: FC = () => {
                                     onClick={() => handleOauthLoginClick(AuthMethod.Feishu)}
                                     loading={preparing[AuthMethod.Feishu]}
                                 >
-                                    Continue with Feishu
+                                    <div style={buttonTextWrapperStyle} >
+                                        Continue with Feishu
+                                    </div>
                                 </Button>
                                 <Collapsible isOpen={showMoreOptions} style={{ width: '100%' }}>
                                     <Space vertical style={{ width: '100%' }}>
-                                        <Button
-                                            {...buttonProps}
-                                            icon={<Icon svg={<GoogleIcon />} />}
-                                            onClick={() => handleOauthLoginClick(AuthMethod.Google)}
-                                            loading={preparing[AuthMethod.Google]}
-                                        >
-                                            Continue with Google
-                                        </Button>
                                         <Button
                                             {...buttonProps}
                                             icon={<IconGithubLogo size='large' style={{ color: '#000' }} />}
                                             onClick={() => handleOauthLoginClick(AuthMethod.Github)}
                                             loading={preparing[AuthMethod.Github]}
                                         >
-                                            Continue with GitHub
+                                            <div style={buttonTextWrapperStyle} >
+                                                Continue with GitHub
+                                            </div>
+                                        </Button>
+                                        <Button
+                                            {...buttonProps}
+                                            icon={<Icon svg={<GoogleIcon />} />}
+                                            onClick={() => handleOauthLoginClick(AuthMethod.Google)}
+                                            loading={preparing[AuthMethod.Google]}
+                                        >
+                                            <div style={buttonTextWrapperStyle} >
+                                                Continue with Google
+                                            </div>
+                                        </Button>
+                                        <Button
+                                            {...buttonProps}
+                                            icon={<Icon svg={<MicrosoftIcon />} />}
+                                            onClick={() => handleOauthLoginClick(AuthMethod.Microsoft)}
+                                            loading={preparing[AuthMethod.Microsoft]}
+                                        >
+                                            <div style={buttonTextWrapperStyle} >
+                                                Continue with Microsoft
+                                            </div>
                                         </Button>
                                     </Space>
                                 </Collapsible>

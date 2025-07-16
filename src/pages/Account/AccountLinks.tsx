@@ -1,16 +1,15 @@
-import { FC, useState } from 'react';
+import { CSSProperties, FC, useState } from 'react';
 import { Button, Card, Toast, Typography, Space, Avatar, Row, Col, Input, Modal } from '@douyinfe/semi-ui';
 import Icon, { IconFeishuLogo, IconLink, IconMail, IconPhone } from '@douyinfe/semi-icons';
 import { useAuth } from '../../lib/context/hooks';
 import { getServerApi, handleResponse } from '../../api/utils';
 import { getErrorMsg } from '../../utils';
 // @ts-expect-error handle svg file
-import GoogleBWIcon from '@/assets/icons/google_black_and_white.svg?react';
-// import GoogleIcon from '@/assets/icons/google.svg?react';
-// @ts-expect-error handle svg file
-import FeishuIcon from '@/assets/icons/feishu.svg?react';
+import GoogleIconBW from '@/assets/icons/google_pure.svg?react';
 // @ts-expect-error handle svg file
 import GithubIcon from '@/assets/icons/github.svg?react';
+// @ts-expect-error handle svg file
+import MicrosoftIconBW from '@/assets/icons/microsoft_pure.svg?react';
 
 interface AccountLinkItem {
     id: string;
@@ -18,10 +17,11 @@ interface AccountLinkItem {
     value: string | undefined;
     description: string;
     icon: React.ReactNode;
-    activeIcon?: React.ReactNode;
     connected: boolean;
-    color: string;
+    activeColor: string;
 }
+
+const IconStyle: CSSProperties = { width: 20, height: 20 };
 
 const AccountLinks: FC = () => {
     const { user } = useAuth();
@@ -35,46 +35,54 @@ const AccountLinks: FC = () => {
             name: '手机号',
             value: user?.phone,
             description: '绑定后可接收紧急通知',
-            icon: <IconPhone size="extra-large" />,
+            icon: <IconPhone size="large" />,
             connected: !!user?.phone,
-            color: 'rgba(var(--semi-green-3), 1)',
+            activeColor: 'rgba(var(--semi-purple-3), 1)',
         },
         {
             id: 'email',
             name: '邮箱',
             value: user?.email,
             description: '绑定后可接收订阅信息和通知',
-            icon: <IconMail size="extra-large" />,
+            icon: <IconMail size="large" />,
             connected: !!user?.email,
-            color: 'rgba(var(--semi-orange-3), 1)',
-        },
-        {
-            id: 'google',
-            name: 'Google',
-            value: user?.googleId,
-            description: '绑定后可授权登录',
-            icon: <Icon svg={<GoogleBWIcon />} />,
-            connected: !!user?.googleId,
-            color: 'rgba(var(--semi-red-3), 1)',
-        },
-        {
-            id: 'github',
-            name: 'GitHub',
-            value: user?.gitHubId,
-            description: '绑定后可授权登录和集成到 GitHub',
-            icon: <Icon svg={<GithubIcon />} />,
-            connected: !!user?.gitHubId,
-            color: '#181717',
+            activeColor: 'rgba(var(--semi-orange-3), 1)',
         },
         {
             id: 'feishu',
             name: '飞书',
             value: user?.feishuId,
             description: '绑定后可授权登录和集成到飞书',
-            icon: <IconFeishuLogo size="extra-large" />,
-            activeIcon: <Icon svg={<FeishuIcon />} />,
+            icon: <IconFeishuLogo size="large" />,
             connected: !!user?.feishuId,
-            color: 'rgba(var(--semi-blue-0), 1)',
+            activeColor: 'rgba(var(--semi-teal-3), 1)',
+        },
+        {
+            id: 'google',
+            name: 'Google',
+            value: user?.googleId,
+            description: '绑定后可授权登录',
+            icon: <Icon svg={<GoogleIconBW style={IconStyle} />} />,
+            connected: !!user?.googleId,
+            activeColor: 'rgba(var(--semi-red-3), 1)',
+        },
+        {
+            id: 'microsoft',
+            name: 'Microsoft',
+            value: user?.microsoftId,
+            description: '绑定后可授权登录',
+            icon: <Icon svg={<MicrosoftIconBW style={IconStyle} />} />,
+            connected: !!user?.microsoftId,
+            activeColor: 'rgba(var(--semi-light-blue-3), 1)',
+        },
+        {
+            id: 'github',
+            name: 'GitHub',
+            value: user?.gitHubId,
+            description: '绑定后可授权登录和集成到 GitHub',
+            icon: <Icon svg={<GithubIcon style={IconStyle} />} />,
+            connected: !!user?.gitHubId,
+            activeColor: 'rgba(var(--semi-grey-9), 1)',
         },
     ];
 
@@ -97,6 +105,14 @@ const AccountLinks: FC = () => {
                     break;
                 case 'google':
                     await handleResponse(api.googleAuthentication.googleAuthControllerGetGoogleConfig({ action }), {
+                        onSuccess: (data) => window.location.href = data.oauthUrl,
+                        onError: (errorMsg) => {
+                            Toast.error({ content: errorMsg, stack: true });
+                        }
+                    });
+                    break;
+                case 'microsoft':
+                    await handleResponse(api.microsoftAuthentication.microsoftAuthControllerGetMicrosoftConfig({ action }), {
                         onSuccess: (data) => window.location.href = data.oauthUrl,
                         onError: (errorMsg) => {
                             Toast.error({ content: errorMsg, stack: true });
@@ -141,20 +157,31 @@ const AccountLinks: FC = () => {
                     <Col key={item.id} xxl={8} xl={8} lg={12} md={24} sm={24} xs={24}>
                         <Card
                             style={{ borderRadius: 12 }}
-                            bodyStyle={{ padding: '12px 16px' }}
+                            bodyStyle={{
+                                padding: '12px 16px',
+                                opacity: item.connected ? 1 : 0.6,
+                            }}
                         >
                             <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
                                 <Space align="center" spacing={12}>
                                     <Avatar
                                         size="default"
                                         shape="square"
-                                        style={{
-                                            color: item.connected ? 'white' : 'var(--semi-color-text-2)',
-                                            backgroundColor: item.connected ? item.color : 'var(--semi-color-fill-2)',
-                                            borderRadius: 12,
-                                        }}
+                                        style={
+                                            item.connected
+                                                ? { // --- 已连接状态 ---
+                                                    backgroundColor: item.activeColor,
+                                                    color: 'white',
+                                                    borderRadius: 12,
+                                                }
+                                                : { // --- 未连接状态 (保持不变) ---
+                                                    backgroundColor: 'var(--semi-color-fill-2)',
+                                                    color: 'var(--semi-color-text-2)',
+                                                    borderRadius: 12,
+                                                }
+                                        }
                                     >
-                                        {item.connected ? item.activeIcon || item.icon : item.icon}
+                                        {item.icon}
                                     </Avatar>
                                     <Space vertical align="start" spacing={2}>
                                         <Typography.Title heading={6}>

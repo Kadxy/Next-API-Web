@@ -61,6 +61,7 @@ export { BillingLogsService } from './services/BillingLogsService';
 export { FeishuAuthenticationService } from './services/FeishuAuthenticationService';
 export { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 export { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
+export { MicrosoftAuthenticationService } from './services/MicrosoftAuthenticationService';
 export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 export { ProxyService } from './services/ProxyService';
 export { RedemptionService } from './services/RedemptionService';

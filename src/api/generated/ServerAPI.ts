@@ -11,6 +11,7 @@ import { BillingLogsService } from './services/BillingLogsService';
 import { FeishuAuthenticationService } from './services/FeishuAuthenticationService';
 import { GitHubAuthenticationService } from './services/GitHubAuthenticationService';
 import { GoogleAuthenticationService } from './services/GoogleAuthenticationService';
+import { MicrosoftAuthenticationService } from './services/MicrosoftAuthenticationService';
 import { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 import { ProxyService } from './services/ProxyService';
 import { RedemptionService } from './services/RedemptionService';
@@ -23,6 +24,7 @@ export class ServerAPI {
     public readonly feishuAuthentication: FeishuAuthenticationService;
     public readonly gitHubAuthentication: GitHubAuthenticationService;
     public readonly googleAuthentication: GoogleAuthenticationService;
+    public readonly microsoftAuthentication: MicrosoftAuthenticationService;
     public readonly passkeyAuthentication: PasskeyAuthenticationService;
     public readonly proxy: ProxyService;
     public readonly redemption: RedemptionService;
@@ -46,6 +48,7 @@ export class ServerAPI {
         this.feishuAuthentication = new FeishuAuthenticationService(this.request);
         this.gitHubAuthentication = new GitHubAuthenticationService(this.request);
         this.googleAuthentication = new GoogleAuthenticationService(this.request);
+        this.microsoftAuthentication = new MicrosoftAuthenticationService(this.request);
         this.passkeyAuthentication = new PasskeyAuthenticationService(this.request);
         this.proxy = new ProxyService(this.request);
         this.redemption = new RedemptionService(this.request);
