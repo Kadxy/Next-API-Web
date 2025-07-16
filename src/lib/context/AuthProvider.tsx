@@ -13,52 +13,53 @@ const AuthProvider: FC<ProviderProps> = ({children}) => {
 
 
     useEffect(() => {
-        initAuth();
+        // 初始化时从localStorage恢复并验证 token 的有效性
+        const initAuth = async () => {
+            const storedToken = localStorage.getItem(STORE_KEYS.TOKEN);
+
+            // 没有token，重置用户状态
+            if (!storedToken) {
+                _reset();
+                setInitialized(true);
+                return;
+            }
+
+            // 有token，设置token
+            updateToken(storedToken);
+
+            // 调用API验证令牌有效性并获取最新的用户信息
+            try {
+                // const fp = await FingerprintJS.load();
+                // const {visitorId} = await fp.get();
+                // console.log(visitorId)
+
+                await handleResponse(getServerApi().authentication.authControllerAccount(), {
+                    onSuccess: updateUser,
+                    onError: (msg) => {
+                        if (msg !== 'Internal Server Error') {
+                            _reset();
+                        }
+                    },
+                });
+            } catch (error) {
+                _reset();
+                console.error('Failed to validate token', error);
+            } finally {
+                setInitialized(true);
+            }
+        };
+
+        initAuth().then();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 初始化时从localStorage恢复用户会话并验证token有效性
-    const initAuth = async () => {
-        const storedToken = localStorage.getItem(STORE_KEYS.TOKEN);
-
-        // 没有token，重置用户状态
-        if (!storedToken) {
-            _reset();
-            setInitialized(true);
-            return;
-        }
-
-        // 有token，设置token
-        updateToken(storedToken);
-
-        // 调用API验证令牌有效性并获取最新的用户信息
-        try {
-            // const fp = await FingerprintJS.load();
-            // const {visitorId} = await fp.get();
-            // console.log(visitorId)
-
-            await handleResponse(getServerApi().authentication.authControllerAccount(), {
-                onSuccess: updateUser,
-                onError: (msg) => {
-                    if (msg !== 'Internal Server Error') {
-                        _reset();
-                    }
-                },
-            });
-        } catch (error) {
-            _reset();
-            console.error('Failed to validate token', error);
-        } finally {
-            setInitialized(true);
-        }
-    };
-
     const logout = async (isLogoutAll: boolean = false) => {
+        const co = getServerApi().authentication
         try {
             if (isLogoutAll) {
-                await getServerApi().authentication.authControllerLogoutAll();
+                await co.authControllerLogoutAll();
             } else {
-                await getServerApi().authentication.authControllerLogout();
+                await co.authControllerLogout();
             }
         } catch (error) {
             console.error('Logout error', error);
