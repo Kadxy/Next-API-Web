@@ -107,9 +107,9 @@ const Recharge: FC = () => {
             }
         };
 
-        fetchWallets();
+        fetchWallets().catch();
 
-    }, [getParam]);
+    }, [getParam, removeParam]);
 
     // 更新价格信息，使用 AbortController 避免竞态条件
     useEffect(() => {
