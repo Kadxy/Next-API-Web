@@ -1,6 +1,5 @@
 import { Layout, Nav, Toast } from '@douyinfe/semi-ui';
 import {
-    IconCart,
     IconCode,
     IconCreditCard,
     IconHelpCircle,
@@ -57,7 +56,6 @@ const App = () => {
             { itemKey: Path.USAGE, text: '用量信息', icon: <IconHistogram /> },
             { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey /> },
             { itemKey: Path.WALLETS, text: '钱包管理', icon: <IconCreditCard /> },
-            { itemKey: Path.RECHARGE, text: '账户充值', icon: <IconCart /> },
             { itemKey: Path.ACCESS, text: '接入文档', icon: <IconCode /> },
             { itemKey: Path.MODEL_LIST, text: '模型列表', icon: <IconLayers /> },
             { itemKey: Path.FAQ, text: '常见问题', icon: <IconHelpCircle /> },

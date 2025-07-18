@@ -2,10 +2,19 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { RedeemCodeResponseData } from './RedeemCodeResponseData';
 export type RedeemCodeResponseDto = {
     /**
-     * 最新余额
+     * Operation Success
      */
-    balance: string;
+    success: boolean;
+    /**
+     * Error Message, only when success is false
+     */
+    msg: string;
+    /**
+     * Response data, only when success is true
+     */
+    data: RedeemCodeResponseData;
 };
 
