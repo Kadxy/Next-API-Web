@@ -1,5 +1,5 @@
-import { Button, Card, Divider, Empty, Icon, Input, InputNumber, Select, Space, Spin, TabPane, Tabs, Toast, Typography } from "@douyinfe/semi-ui";
-import { FC, useEffect, useState } from "react";
+import { Button, Card, Divider, Empty, Icon, Input, InputNumber, Modal, Select, Space, Spin, TabPane, Tabs, Toast, Typography } from "@douyinfe/semi-ui";
+import { FC, useEffect, useState, useCallback } from "react";
 import { getWalletsOption } from "../../api/utils/wallets-option";
 import { EpayCreateOrderResponseV1, EpayPriceResponseData, EpayRechargeRequestDto } from "../../api/generated";
 import { handleResponse, getServerApi } from "../../api/utils";
@@ -19,9 +19,34 @@ enum RECHARGE_METHOD {
     PUBLIC_TRANSFER = '对公汇款',
 }
 
+// 自定义 Hook 用于管理 URL 参数
+const useURLParams = () => {
+    const getParam = useCallback((key: string): string | null => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(key);
+    }, []);
+
+    const setParam = useCallback((key: string, value: string) => {
+        const params = new URLSearchParams(window.location.search);
+        params.set(key, value);
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    }, []);
+
+    const removeParam = useCallback((key: string) => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete(key);
+        const newSearch = params.toString();
+        const newUrl = newSearch ? `${window.location.pathname}?${newSearch}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+    }, []);
+
+    return { getParam, setParam, removeParam };
+};
+
 const Recharge: FC = () => {
     const { Title, Text } = Typography;
     const navigate = useNavigate();
+    const { getParam, setParam, removeParam } = useURLParams();
 
     // 充值钱包
     const [walletOptions, setWalletOptions] = useState<{ label: string; value: string }[]>([]);
@@ -59,9 +84,20 @@ const Recharge: FC = () => {
 
                 setWalletOptions(options);
 
-                // 如果有钱包且没有选中的钱包，默认选择第一个
-                if (options.length > 0 && !selectedWalletUid) {
-                    setSelectedWalletUid(options[0].value);
+                // 如果有钱包且没有选中的钱包，则根据参数选择钱包，否则默认选择第一个
+                if (options.length > 0) {
+                    const walletUidFromUrl = getParam('walletUid');
+                    if (walletUidFromUrl) {
+                        if (options.find(option => option.value === walletUidFromUrl)) {
+                            setSelectedWalletUid(walletUidFromUrl);
+                        } else {
+                            Toast.error('钱包不存在');
+                            setSelectedWalletUid(options[0].value);
+                            removeParam('walletUid');
+                        }
+                    } else {
+                        setSelectedWalletUid(options[0].value);
+                    }
                 }
             } catch (error) {
                 Toast.error('获取钱包列表失败');
@@ -73,8 +109,7 @@ const Recharge: FC = () => {
 
         fetchWallets();
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [getParam]);
 
     // 更新价格信息，使用 AbortController 避免竞态条件
     useEffect(() => {
@@ -168,9 +203,16 @@ const Recharge: FC = () => {
                         walletUid: selectedWalletUid
                     }
                 }), {
-                onSuccess: () => {
-                    Toast.success("兑换成功");
+                onSuccess: (data) => {
                     setRedeemCode('');
+                    Modal.success({
+                        title: '兑换成功',
+                        content: `兑换额度: $${Number(data.quota).toFixed(2)}`,
+                        centered: true,
+                        okText: '完成',
+                        closable: false,
+                        hasCancel: false,
+                    });
                 },
                 onError: (msg) => {
                     Toast.error({ content: msg, stack: true });
@@ -228,7 +270,13 @@ const Recharge: FC = () => {
                     loading={walletLoading}
                     style={{ width: 240 }}
                     value={selectedWalletUid}
-                    onChange={(v) => setSelectedWalletUid(v as string)}
+                    onChange={(v) => {
+                        const walletUid = v as string;
+                        // 更新 URL 参数
+                        setParam('walletUid', walletUid);
+                        // 更新状态
+                        setSelectedWalletUid(walletUid);
+                    }}
                     placeholder='请选择要充值的钱包'
                     prefix={<IconCreditCard />}
                 />
@@ -279,7 +327,6 @@ const Recharge: FC = () => {
                                     prefix={'$'}
                                 />
                             </Space>
-                            <Divider />
 
                             <Card style={{ width: 320 }}>
                                 <Space vertical align="start" style={{ width: '100%' }}>

@@ -1,14 +1,14 @@
-import {FC, useEffect, useState} from 'react';
-import {Button, Card, Modal, Space, Table, Toast, Typography} from '@douyinfe/semi-ui';
-import {IconCreditCard, IconExit, IconSetting} from '@douyinfe/semi-icons';
-import {ListWalletResponseItemData} from '../../api/generated';
-import {getServerApi, handleResponse} from '../../api/utils';
-import {formatCredit, getErrorMsg} from '../../utils';
-import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
-import {useNavigate} from 'react-router-dom';
-import {Path} from '../../lib/constants/paths';
+import { FC, useEffect, useState } from 'react';
+import { Button, Card, Modal, Space, Table, Toast, Typography } from '@douyinfe/semi-ui';
+import { IconCreditCard, IconExit, IconSetting, IconTop } from '@douyinfe/semi-icons';
+import { ListWalletResponseItemData } from '../../api/generated';
+import { getServerApi, handleResponse } from '../../api/utils';
+import { formatCredit, getErrorMsg } from '../../utils';
+import { ColumnProps } from '@douyinfe/semi-ui/lib/es/table/interface';
+import { useNavigate } from 'react-router-dom';
+import { Path } from '../../lib/constants/paths';
 
-const {Text} = Typography;
+const { Text } = Typography;
 
 const WalletList: FC = () => {
     const [wallets, setWallets] = useState<ListWalletResponseItemData[]>([]);
@@ -26,12 +26,12 @@ const WalletList: FC = () => {
                         setWallets(data);
                     },
                     onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
+                        Toast.error({ content: errorMsg });
                     }
                 }
             );
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '获取钱包列表失败')});
+            Toast.error({ content: getErrorMsg(error, '获取钱包列表失败') });
         } finally {
             setLoading(false);
         }
@@ -54,22 +54,22 @@ const WalletList: FC = () => {
             onOk: async () => {
                 try {
                     await handleResponse(
-                        getServerApi().wallet.walletControllerLeaveWallet({walletUid}),
+                        getServerApi().wallet.walletControllerLeaveWallet({ walletUid }),
                         {
                             onSuccess: () => {
-                                Toast.success({content: '退出成功'});
+                                Toast.success({ content: '退出成功' });
                                 fetchWallets();
                             },
                             onError: (errorMsg) => {
-                                Toast.error({content: errorMsg});
+                                Toast.error({ content: errorMsg });
                             }
                         }
                     );
                 } catch (error) {
-                    Toast.error({content: getErrorMsg(error, '退出失败')});
+                    Toast.error({ content: getErrorMsg(error, '退出失败') });
                 }
             },
-            cancelButtonProps: {theme: 'borderless'},
+            cancelButtonProps: { theme: 'borderless' },
             centered: true,
         });
     };
@@ -83,7 +83,7 @@ const WalletList: FC = () => {
             render: (_: unknown, record: ListWalletResponseItemData) => (
                 <Space>
                     <IconCreditCard
-                        style={{color: record.isOwner ? 'rgba(var(--semi-light-blue-5), 1)' : 'rgba(var(--semi-light-green-5), 1)'}}/>
+                        style={{ color: record.isOwner ? 'rgba(var(--semi-light-blue-5), 1)' : 'rgba(var(--semi-light-green-5), 1)' }} />
                     <Text strong>{record.displayName}</Text>
                 </Space>
             ),
@@ -117,7 +117,7 @@ const WalletList: FC = () => {
             dataIndex: 'creditLimit',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit,undefined, true),
+            render: (_: unknown, record: ListWalletResponseItemData) => formatCredit(record.creditLimit, undefined, true),
         },
         {
             title: '操作',
@@ -126,9 +126,17 @@ const WalletList: FC = () => {
             align: 'center',
             render: (_: unknown, record: ListWalletResponseItemData) => (
                 <Space>
+                    <Button
+                        icon={<IconTop />}
+                        onClick={() => navigate(`${Path.RECHARGE}?walletUid=${record.uid}`)}
+                        theme="borderless"
+                        type='secondary'
+                    >
+                        充值
+                    </Button>
                     {record.isOwner ? (
                         <Button
-                            icon={<IconSetting/>}
+                            icon={<IconSetting />}
                             onClick={() => handleViewDetail(record)}
                             theme="borderless"
                             type="primary"
@@ -138,7 +146,7 @@ const WalletList: FC = () => {
                     ) : (
                         <>
                             <Button
-                                icon={<IconExit/>}
+                                icon={<IconExit />}
                                 onClick={() => handleLeaveWallet(record.uid, record.displayName)}
                                 theme="borderless"
                                 type="danger"

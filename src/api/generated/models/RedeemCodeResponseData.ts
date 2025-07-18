@@ -4,8 +4,8 @@
 /* eslint-disable */
 export type RedeemCodeResponseData = {
     /**
-     * 最新余额
+     * 兑换额度, 整数
      */
-    balance: string;
+    quota: string;
 };
 
