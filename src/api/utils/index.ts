@@ -1,4 +1,4 @@
-import { CancelablePromise, ServerAPI } from "../generated";
+import {CancelablePromise, ServerAPI} from "../generated";
 import {STORE_KEYS} from "../../lib/constants/store.ts";
 
 // 定义API响应的通用接口
@@ -21,7 +21,7 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
     }
 ) => {
     const response = await controller;
-    const { success, msg, data = null } = response as unknown as ApiResponse<D>;
+    const {success, msg, data = null} = response as unknown as ApiResponse<D>;
 
     if (success) {
         if (options.onSuccess) {
@@ -60,10 +60,14 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
 
 /** 获取服务器API实例 */
 export const getServerApi = () => {
+    const isDev = import.meta.env.VITE_NODE_ENV === 'development';
+    const serverBase = isDev ?
+        import.meta.env.VITE_SERVER_BASE_URL_DEV :
+        import.meta.env.VITE_SERVER_BASE_URL_PROD;
     const token = localStorage.getItem(STORE_KEYS.TOKEN) || '';
 
     const config = {
-        BASE: import.meta.env.VITE_SERVER_BASE_URL,
+        BASE: serverBase,
         HEADERS: {
             ...(token && {Authorization: `Bearer ${token}`}),
         },
