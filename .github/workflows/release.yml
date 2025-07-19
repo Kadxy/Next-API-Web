@@ -1,0 +1,71 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags starting with 'v', e.g. v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+            
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Build project
+        run: pnpm build
+        
+      - name: Create dist archive
+        run: |
+          cd dist
+          tar -czf ../dist-${{ github.ref_name }}.tar.gz .
+          cd ..
+          zip -r dist-${{ github.ref_name }}.zip dist/
+          
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## 📦 Static Files Download
+
+            Built from: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+
+            ### Download Instructions
+            - `dist-${{ github.ref_name }}.tar.gz`: Recommended for Linux/macOS
+            - `dist-${{ github.ref_name }}.zip`: Recommended for Windows
+
+            Both files contain identical content. Please choose the appropriate format for your operating system.
+          files: |
+            dist-${{ github.ref_name }}.tar.gz
+            dist-${{ github.ref_name }}.zip
+          draft: false
+          prerelease: false
