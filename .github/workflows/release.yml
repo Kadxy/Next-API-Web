@@ -67,7 +67,7 @@ jobs:
 
             Both files contain identical content. Please choose the appropriate format for your operating system.
           files: |
-            dist-${{ github.ref_name }}.tar.gz
             dist-${{ github.ref_name }}.zip
+            dist-${{ github.ref_name }}.tar.gz
           draft: false
           prerelease: false
