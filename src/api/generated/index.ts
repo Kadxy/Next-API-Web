@@ -45,6 +45,11 @@ export type { RedeemCodeDto } from './models/RedeemCodeDto';
 export type { RedeemCodeResponseData } from './models/RedeemCodeResponseData';
 export type { RedeemCodeResponseDto } from './models/RedeemCodeResponseDto';
 export type { SendEmailLoginCodeDto } from './models/SendEmailLoginCodeDto';
+export type { TransactionDetailData } from './models/TransactionDetailData';
+export type { TransactionDetailResponseDto } from './models/TransactionDetailResponseDto';
+export type { TransactionListData } from './models/TransactionListData';
+export type { TransactionListResponseDto } from './models/TransactionListResponseDto';
+export type { TransactionRecordData } from './models/TransactionRecordData';
 export type { UpdateApiKeyDisplayNameRequestDto } from './models/UpdateApiKeyDisplayNameRequestDto';
 export type { UpdateApiKeyDisplayNameResponseDto } from './models/UpdateApiKeyDisplayNameResponseDto';
 export type { UpdateDisplayNameDto } from './models/UpdateDisplayNameDto';
@@ -69,4 +74,5 @@ export { MicrosoftAuthenticationService } from './services/MicrosoftAuthenticati
 export { OpenAiService } from './services/OpenAiService';
 export { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 export { RedemptionService } from './services/RedemptionService';
+export { TransactionService } from './services/TransactionService';
 export { WalletService } from './services/WalletService';

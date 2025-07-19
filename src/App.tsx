@@ -7,6 +7,7 @@ import {
     IconHome,
     IconKey,
     IconLayers,
+    IconList,
     IconUser
 } from '@douyinfe/semi-icons';
 import { NO_SIDEBAR_PATHS, Path } from './lib/constants/paths';
@@ -56,6 +57,7 @@ const App = () => {
             { itemKey: Path.USAGE, text: '用量信息', icon: <IconHistogram /> },
             { itemKey: Path.API_KEYS, text: 'API Keys', icon: <IconKey /> },
             { itemKey: Path.WALLETS, text: '钱包管理', icon: <IconCreditCard /> },
+            { itemKey: Path.TRANSACTIONS, text: '交易记录', icon: <IconList /> },
             { itemKey: Path.ACCESS, text: '接入文档', icon: <IconCode /> },
             { itemKey: Path.MODEL_LIST, text: '模型列表', icon: <IconLayers /> },
             { itemKey: Path.FAQ, text: '常见问题', icon: <IconHelpCircle /> },

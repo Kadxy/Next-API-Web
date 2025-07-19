@@ -18,6 +18,7 @@ const Access = lazy(() => import('../../pages/Access'));
 const FAQ = lazy(() => import('../../pages/FAQ'));
 const ModelList = lazy(() => import('../../pages/ModelList'));
 const Wallets = lazy(() => import('../../pages/Wallets'));
+const Transactions = lazy(() => import('../../pages/Transactions'));
 
 
 
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
                     {
                         path: Path.WALLETS_DETAIL,
                         element: <SuspenseWrapper><Wallets /></SuspenseWrapper>,
+                    },
+                    {
+                        path: Path.TRANSACTIONS,
+                        element: <SuspenseWrapper><Transactions /></SuspenseWrapper>,
                     },
                 ],
             },

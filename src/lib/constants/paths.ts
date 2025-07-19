@@ -12,6 +12,7 @@ export const Path = {
   MODEL_LIST: '/model-list',
   WALLETS: '/wallets',
   WALLETS_DETAIL: '/wallets/:uid',
-} as const; 
+  TRANSACTIONS: '/transactions',
+} as const;
 
 export const NO_SIDEBAR_PATHS: (typeof Path)[keyof typeof Path][] = [Path.LOGIN, Path.CALLBACK];

@@ -8,10 +8,6 @@ export type CreateRedemptionCodeDto = {
      */
     amount: number;
     /**
-     * 过期时间，默认 90 天后
-     */
-    expiredAt?: string;
-    /**
      * 备注
      */
     remark?: string;

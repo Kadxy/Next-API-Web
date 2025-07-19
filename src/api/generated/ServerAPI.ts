@@ -16,6 +16,7 @@ import { MicrosoftAuthenticationService } from './services/MicrosoftAuthenticati
 import { OpenAiService } from './services/OpenAiService';
 import { PasskeyAuthenticationService } from './services/PasskeyAuthenticationService';
 import { RedemptionService } from './services/RedemptionService';
+import { TransactionService } from './services/TransactionService';
 import { WalletService } from './services/WalletService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class ServerAPI {
@@ -30,6 +31,7 @@ export class ServerAPI {
     public readonly openAi: OpenAiService;
     public readonly passkeyAuthentication: PasskeyAuthenticationService;
     public readonly redemption: RedemptionService;
+    public readonly transaction: TransactionService;
     public readonly wallet: WalletService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = AxiosHttpRequest) {
@@ -55,6 +57,7 @@ export class ServerAPI {
         this.openAi = new OpenAiService(this.request);
         this.passkeyAuthentication = new PasskeyAuthenticationService(this.request);
         this.redemption = new RedemptionService(this.request);
+        this.transaction = new TransactionService(this.request);
         this.wallet = new WalletService(this.request);
     }
 }
