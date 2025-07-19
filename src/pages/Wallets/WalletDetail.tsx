@@ -336,7 +336,13 @@ const WalletDetail: FC<WalletDetailProps> = ({ walletUid }) => {
             key: 'creditRemain',
             width: "15%",
             align: 'right',
-            render: (_: unknown, record: WalletDetailResponseMemberItemData) => formatCredit(String(Number(record.creditLimit) - Number(record.creditUsed)), !record.isActive)
+            render: (_: unknown, record: WalletDetailResponseMemberItemData) => {
+                const isUnlimited = Number(record.creditLimit) === 0;
+                if (isUnlimited) {
+                    return <Typography.Text type='tertiary'>-</Typography.Text>
+                }
+                return formatCredit(String(Number(record.creditLimit) - Number(record.creditUsed)), !record.isActive);
+            }
         },
         {
             title: '操作',
