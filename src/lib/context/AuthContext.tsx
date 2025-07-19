@@ -2,10 +2,6 @@ import { createContext } from 'react';
 import { UserResponseData } from '../../api/generated';
 
 export interface AuthContextType {
-    // Loading
-    /** @deprecated use `initialized` instead */
-    isLoading: boolean;
-
     // Initialized
     initialized: boolean;
 

@@ -151,7 +151,7 @@ const Callback: FC = () => {
             }
         };
 
-        handleCallback();
+        handleCallback().catch();
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [platform, action, user, token, initialized, navigate]);

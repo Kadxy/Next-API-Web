@@ -105,7 +105,7 @@ const PaymentQRModal: FC<PaymentQRModalProps> = ({
     // 当弹窗显示时生成二维码并开始轮询
     useEffect(() => {
         if (visible && qrCodeUrl) {
-            generateQRCode();
+            generateQRCode().catch();
             startPolling();
         } else {
             stopPolling();

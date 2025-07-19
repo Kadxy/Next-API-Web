@@ -19,4 +19,8 @@ export default defineConfig({
             renderLegacyChunks: false,
         })
     ],
+    build: {
+        // 让 Vite 自动处理代码分片，它比我们手动配置更智能
+        chunkSizeWarningLimit: 1000
+    }
 })

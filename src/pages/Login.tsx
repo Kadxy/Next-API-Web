@@ -143,13 +143,13 @@ const Login: FC = () => {
                     setPasskeyConfig({ optionsJSON, state });
 
                     if (await browserSupportsWebAuthnAutofill()) {
-                        performPasskeyAuthentication({ optionsJSON, state }, true);
+                        await performPasskeyAuthentication({optionsJSON, state}, true);
                     }
                 }
             });
         }
 
-        loadPasskeyConfig();
+        loadPasskeyConfig().catch();
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

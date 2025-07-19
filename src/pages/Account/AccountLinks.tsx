@@ -1,4 +1,4 @@
-import { CSSProperties, FC, useState } from 'react';
+import {CSSProperties, FC, ReactNode, useState} from 'react';
 import { Button, Card, Toast, Typography, Space, Avatar, Row, Col, Input, Modal } from '@douyinfe/semi-ui';
 import Icon, { IconFeishuLogo, IconLink, IconMail, IconPhone } from '@douyinfe/semi-icons';
 import { useAuth } from '../../lib/context/hooks';
@@ -16,7 +16,7 @@ interface AccountLinkItem {
     name: string;
     value: string | undefined;
     description: string;
-    icon: React.ReactNode;
+    icon: ReactNode;
     connected: boolean;
     activeColor: string;
 }

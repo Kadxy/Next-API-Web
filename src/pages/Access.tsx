@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {CSSProperties, useState} from 'react';
 import { Typography, Card, Tabs, TabPane, Input, Button, Toast, CodeHighlight, Switch, AutoComplete } from '@douyinfe/semi-ui';
 import { IconCopy } from '@douyinfe/semi-icons';
 import 'prismjs/components/prism-python.js';
@@ -23,7 +23,7 @@ const Access = () => {
     const baseUrl = 'https://cn.api-grip.com';
 
     // 复制代码到剪贴板
-    const CopyButton = ({ text, style }: { text: string, style: React.CSSProperties }) => {
+    const CopyButton = ({ text, style }: { text: string, style: CSSProperties }) => {
         const copyToClipboard = (text: string) => {
             navigator.clipboard.writeText(text)
                 .then(() => Toast.success({ content: '复制成功', stack: true }))

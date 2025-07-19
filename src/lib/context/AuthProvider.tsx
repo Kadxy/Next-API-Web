@@ -94,7 +94,6 @@ const AuthProvider: FC<ProviderProps> = ({children}) => {
     return (
         <AuthContext.Provider
             value={{
-                isLoading: !initialized,
                 initialized,
                 user,
                 setUser: updateUser,

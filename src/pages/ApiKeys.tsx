@@ -261,7 +261,7 @@ const ApiKeys: FC = () => {
 
     // 初始化加载
     useEffect(() => {
-        fetchApiKeys();
+        fetchApiKeys().catch();
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
