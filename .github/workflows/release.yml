@@ -54,7 +54,7 @@ jobs:
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: |
             ## 📦 Static Files Download
 
@@ -62,8 +62,8 @@ jobs:
             Commit: ${{ github.sha }}
 
             ### Download Instructions
-            - `dist-${{ github.ref_name }}.tar.gz`: Recommended for Linux/macOS
             - `dist-${{ github.ref_name }}.zip`: Recommended for Windows
+            - `dist-${{ github.ref_name }}.tar.gz`: Recommended for Linux/macOS
 
             Both files contain identical content. Please choose the appropriate format for your operating system.
           files: |
