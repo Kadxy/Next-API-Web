@@ -43,6 +43,8 @@ jobs:
         
       - name: Build project
         run: pnpm build
+        env:
+          NODE_ENV: production
         
       - name: Create dist archive
         run: |

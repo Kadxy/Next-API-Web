@@ -60,7 +60,8 @@ export const handleResponse = async <T, D = ExtractResponseData<T>>(
 
 /** 获取服务器API实例 */
 export const getServerApi = () => {
-    const isDev = import.meta.env.VITE_NODE_ENV === 'development';
+    // 使用 Vite 内置的 MODE 环境变量，而不是自定义的 VITE_NODE_ENV
+    const isDev = import.meta.env.MODE === 'development';
     const serverBase = isDev ?
         import.meta.env.VITE_SERVER_BASE_URL_DEV :
         import.meta.env.VITE_SERVER_BASE_URL_PROD;
