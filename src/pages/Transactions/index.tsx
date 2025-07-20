@@ -195,9 +195,19 @@ const Transactions: FC = () => {
             dataIndex: 'amount',
             key: 'amount',
             width: '120px',
-            render: (amount: string) => (
-                <Text strong>${Number(amount).toFixed(6)}</Text>
-            )
+            render: (amount: unknown) => {
+                if (!amount || typeof amount !== "string") {
+                    return '-';
+                }
+
+                const numericAmount = Number(amount);
+
+                if (!Number.isFinite(numericAmount) || isNaN(numericAmount)) {
+                    return '-';
+                }
+
+                return `$${Math.abs(numericAmount).toFixed(6)}`
+            }
         },
         {
             title: '描述',
