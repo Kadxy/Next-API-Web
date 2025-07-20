@@ -1,11 +1,11 @@
 import {FC, useEffect, useMemo, useState} from 'react';
-import {Button, Card, Empty, Pagination, Select, Space, Table, Tag, Toast, Typography} from '@douyinfe/semi-ui';
+import {Avatar, Button, Card, Empty, Pagination, Space, Table, Tag, Toast, Typography} from '@douyinfe/semi-ui';
 import {IconCreditCard, IconMore, IconRefresh} from '@douyinfe/semi-icons';
 import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
-import {TransactionRecordData} from '../../api/generated';
+import {SelfTransactionRecordData, WalletOwnerTransactionRecordData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {getWalletsOption} from '../../api/utils/wallets-option';
-import {formatCredit, getDayjsFormat, getErrorMsg} from '../../utils';
+
+import {formatCredit, getDayjsFormat, getErrorMsg, getDefaultAvatar} from '../../utils';
 import TransactionFilters from './TransactionFilters';
 import TransactionDetailSideSheet from './TransactionDetailSideSheet';
 
@@ -34,20 +34,23 @@ const TRANSACTION_STATUS_MAP = {
 interface TransactionQueryParams {
     page?: number;
     pageSize?: number;
-    startDate?: string;
-    endDate?: string;
+    startTime?: string;
+    endTime?: string;
     type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
     status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-    userId?: number;
+    userUid?: string;
 }
 
+type TransactionRecord = SelfTransactionRecordData | WalletOwnerTransactionRecordData;
+
 const Transactions: FC = () => {
-    const [transactions, setTransactions] = useState<TransactionRecordData[]>([]);
+    const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [walletOptions, setWalletOptions] = useState<{ label: string; value: string }[]>([]);
+    const [walletOptions, setWalletOptions] = useState<{ label: string; value: string; isOwner: boolean }[]>([]);
     const [selectedWallet, setSelectedWallet] = useState<string>('self');
     const [detailVisible, setDetailVisible] = useState(false);
     const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
+    const [selectedRecord, setSelectedRecord] = useState<TransactionRecord | null>(null);
 
     // 分页状态
     const [pagination, setPagination] = useState({
@@ -63,18 +66,36 @@ const Transactions: FC = () => {
     // 钱包选项（包含"我的交易"）
     const walletSelectOptions = useMemo(() => {
         return [
-            {label: '我的交易', value: 'self'},
+            {label: '我的交易', value: 'self', isOwner: false},
             ...walletOptions
         ];
     }, [walletOptions]);
 
+    // 当前选择的钱包信息
+    const currentWalletInfo = useMemo(() => {
+        return walletSelectOptions.find(option => option.value === selectedWallet);
+    }, [walletSelectOptions, selectedWallet]);
+
     // 获取钱包列表
     const fetchWallets = async () => {
         try {
-            const options = await getWalletsOption((msg) => {
-                Toast.error(`获取钱包列表失败: ${msg}`);
-            });
-            setWalletOptions(options);
+            // 获取钱包列表，包含所有者信息
+            await handleResponse(
+                getServerApi().wallet.walletControllerGetWallets(),
+                {
+                    onSuccess: (data) => {
+                        const options = data.map(wallet => ({
+                            label: wallet.displayName,
+                            value: wallet.uid,
+                            isOwner: wallet.isOwner
+                        }));
+                        setWalletOptions(options);
+                    },
+                    onError: (errorMsg) => {
+                        Toast.error(`获取钱包列表失败: ${errorMsg}`);
+                    }
+                }
+            );
         } catch (error) {
             console.error('获取钱包列表失败:', error);
         }
@@ -100,28 +121,51 @@ const Transactions: FC = () => {
             });
 
             const isWalletView = selectedWallet !== 'self';
-            const apiCall = isWalletView
-                ? getServerApi().transaction.transactionControllerGetWalletTransactions({
-                    walletUid: selectedWallet,
-                    ...queryParams
-                })
-                : getServerApi().transaction.transactionControllerGetSelfTransactions(queryParams);
 
-            await handleResponse(apiCall, {
-                onSuccess: (data) => {
-                    setTransactions(data.records);
-                    setPagination(prev => ({
-                        ...prev,
-                        total: data.total,
-                        totalPages: data.totalPages,
-                        current: data.page,
-                        pageSize: data.pageSize
-                    }));
-                },
-                onError: (errorMsg) => {
-                    Toast.error({content: errorMsg});
-                }
-            });
+            if (isWalletView) {
+                // 钱包交易记录
+                await handleResponse(
+                    getServerApi().transaction.transactionControllerGetWalletTransactions({
+                        walletUid: selectedWallet,
+                        ...queryParams
+                    }),
+                    {
+                        onSuccess: (data) => {
+                            setTransactions(data.records);
+                            setPagination(prev => ({
+                                ...prev,
+                                total: data.total,
+                                totalPages: data.totalPages,
+                                current: data.page,
+                                pageSize: data.pageSize
+                            }));
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({content: errorMsg});
+                        }
+                    }
+                );
+            } else {
+                // 个人交易记录
+                await handleResponse(
+                    getServerApi().transaction.transactionControllerGetSelfTransactions(queryParams),
+                    {
+                        onSuccess: (data) => {
+                            setTransactions(data.records);
+                            setPagination(prev => ({
+                                ...prev,
+                                total: data.total,
+                                totalPages: data.totalPages,
+                                current: data.page,
+                                pageSize: data.pageSize
+                            }));
+                        },
+                        onError: (errorMsg) => {
+                            Toast.error({content: errorMsg});
+                        }
+                    }
+                );
+            }
         } catch (error) {
             Toast.error({content: getErrorMsg(error, '获取交易记录失败')});
         } finally {
@@ -159,8 +203,9 @@ const Transactions: FC = () => {
     };
 
     // 查看详情
-    const handleViewDetail = (businessId: string) => {
-        setSelectedBusinessId(businessId);
+    const handleViewDetail = (record: TransactionRecord) => {
+        setSelectedRecord(record);
+        setSelectedBusinessId(record.businessId);
         setDetailVisible(true);
     };
 
@@ -181,23 +226,42 @@ const Transactions: FC = () => {
     }, [selectedWallet, walletOptions.length]);
 
     // 表格列定义
-    const columns: ColumnProps<TransactionRecordData>[] = [
+    const columns: ColumnProps<TransactionRecord>[] = [
         {
-            title: '业务ID',
-            dataIndex: 'businessId',
-            key: 'businessId',
-            width: '15%',
-            render: (text: string) => (
-                <Text style={{fontFamily: 'monospace', fontSize: '12px'}}>
-                    {text.slice(0, 8)}...{text.slice(-8)}
-                </Text>
-            )
+            title: '时间',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            width: selectedWallet === 'self' ? '18%' : '15%',
+            render: (text: string) => getDayjsFormat(text, 'YYYY-MM-DD HH:mm:ss')
         },
+        // 钱包视图下显示用户信息
+        ...(selectedWallet !== 'self' ? [{
+            title: '用户',
+            key: 'user',
+            width: '15%',
+            render: (_: unknown, record: TransactionRecord) => {
+                const walletRecord = record as WalletOwnerTransactionRecordData;
+                if (!walletRecord.user) return '-';
+
+                const user = walletRecord.user as { displayName: string; avatar?: string };
+                return (
+                    <Space>
+                        {user.avatar ?
+                            <Avatar size="extra-small" src={user.avatar} /> :
+                            getDefaultAvatar(user.displayName, 'extra-small')
+                        }
+                        <Text style={{ fontSize: '12px' }}>
+                            {user.displayName}
+                        </Text>
+                    </Space>
+                );
+            }
+        }] : []),
         {
             title: '类型',
             dataIndex: 'type',
             key: 'type',
-            width: '10%',
+            width: '12%',
             align: 'center',
             render: (type: keyof typeof TRANSACTION_TYPE_MAP) => {
                 const config = TRANSACTION_TYPE_MAP[type];
@@ -226,9 +290,9 @@ const Transactions: FC = () => {
             title: '描述',
             dataIndex: 'description',
             key: 'description',
-            width: '25%',
+            width: selectedWallet === 'self' ? '30%' : '25%',
             render: (text: string) => (
-                <Text ellipsis={{showTooltip: true}} style={{maxWidth: 200}}>
+                <Text ellipsis={{showTooltip: true}} style={{maxWidth: 250}}>
                     {text}
                 </Text>
             )
@@ -249,23 +313,16 @@ const Transactions: FC = () => {
             }
         },
         {
-            title: '创建时间',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            width: '15%',
-            render: (text: string) => getDayjsFormat(text, 'YYYY-MM-DD HH:mm')
-        },
-        {
             title: '操作',
             key: 'actions',
             width: '8%',
             align: 'center',
-            render: (_: unknown, record: TransactionRecordData) => (
+            render: (_: unknown, record: TransactionRecord) => (
                 <Button
                     icon={<IconMore/>}
                     theme="borderless"
                     size="small"
-                    onClick={() => handleViewDetail(record.businessId)}
+                    onClick={() => handleViewDetail(record)}
                 >
                     详情
                 </Button>
@@ -297,23 +354,14 @@ const Transactions: FC = () => {
                 }
             >
                 <Space vertical spacing="medium" style={{width: '100%'}}>
-                    {/* 钱包选择器 */}
-                    <Space vertical align="start">
-                        <Text type="secondary" strong>查看范围</Text>
-                        <Select
-                            value={selectedWallet}
-                            onChange={(value) => handleWalletChange(value as string)}
-                            style={{width: 240}}
-                            optionList={walletSelectOptions}
-                            prefix={<IconCreditCard/>}
-                        />
-                    </Space>
-
                     {/* 筛选器 */}
                     <TransactionFilters
                         onFilter={handleFilter}
                         loading={loading}
-                        showUserFilter={selectedWallet !== 'self'}
+                        walletOptions={walletSelectOptions}
+                        selectedWallet={selectedWallet}
+                        onWalletChange={handleWalletChange}
+                        showUserFilter={currentWalletInfo?.isOwner || false}
                     />
 
                     {/* 表格 */}
@@ -345,7 +393,11 @@ const Transactions: FC = () => {
                                 showSizeChanger
                                 showQuickJumper
                                 showTotal
+                                popoverPosition="top"
                                 onChange={handlePageChange}
+                                onPageSizeChange={(newPageSize: number) =>
+                                    handlePageChange(pagination.current, newPageSize)
+                                }
                             />
                         </div>
                     )}
@@ -356,6 +408,7 @@ const Transactions: FC = () => {
             <TransactionDetailSideSheet
                 visible={detailVisible}
                 businessId={selectedBusinessId}
+                record={selectedRecord}
                 onClose={() => setDetailVisible(false)}
             />
         </>

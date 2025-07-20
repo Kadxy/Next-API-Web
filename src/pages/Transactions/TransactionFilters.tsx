@@ -3,23 +3,28 @@ import {
     Form,
     Button,
     Space,
-    Card,
-    useFormApi
+    DatePicker,
+    useFormApi,
+    Select,
+    Typography
 } from '@douyinfe/semi-ui';
-import { IconSearch, IconRefresh } from '@douyinfe/semi-icons';
+import { IconSearch, IconRefresh, IconUser, IconCreditCard } from '@douyinfe/semi-icons';
 
-
+const { Text } = Typography;
 
 interface TransactionFiltersProps {
     onFilter: (filters: {
-        startDate?: string;
-        endDate?: string;
+        startTime?: string;
+        endTime?: string;
         type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
         status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-        userId?: number;
+        userUid?: string;
     }) => void;
     loading?: boolean;
     showUserFilter?: boolean;
+    walletOptions: { label: string; value: string; isOwner: boolean }[];
+    selectedWallet: string;
+    onWalletChange: (walletUid: string) => void;
 }
 
 // 交易类型选项
@@ -49,30 +54,34 @@ const FilterFormContent: FC<{
     showUserFilter: boolean;
     hasFilters: boolean;
     setHasFilters: (value: boolean) => void;
-}> = ({ onFilter, loading, showUserFilter, hasFilters, setHasFilters }) => {
+    walletOptions: TransactionFiltersProps['walletOptions'];
+    selectedWallet: string;
+    onWalletChange: TransactionFiltersProps['onWalletChange'];
+}> = ({ onFilter, loading, showUserFilter, hasFilters, setHasFilters, walletOptions, selectedWallet, onWalletChange }) => {
     const formApi = useFormApi();
 
     // 处理筛选提交
     const handleSubmit = (values: Record<string, unknown>) => {
         const filters: {
-            startDate?: string;
-            endDate?: string;
+            startTime?: string;
+            endTime?: string;
             type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
             status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-            userId?: number;
+            userUid?: string;
         } = {};
-        
+
         // 处理日期范围
         if (values.dateRange && Array.isArray(values.dateRange) && values.dateRange.length === 2) {
-            const dateRange = values.dateRange as Array<{ format: (format: string) => string }>;
-            filters.startDate = dateRange[0].format('YYYY-MM-DD');
-            filters.endDate = dateRange[1].format('YYYY-MM-DD');
+            const dateRange = values.dateRange as Array<Date>;
+            // 使用 ISO 字符串格式
+            filters.startTime = dateRange[0].toISOString();
+            filters.endTime = dateRange[1].toISOString();
         }
-        
+
         // 处理其他筛选条件
         if (values.type) filters.type = values.type as typeof filters.type;
         if (values.status) filters.status = values.status as typeof filters.status;
-        if (values.userId) filters.userId = values.userId as number;
+        if (values.userUid) filters.userUid = values.userUid as string;
 
         setHasFilters(Object.keys(filters).length > 0);
         onFilter(filters);
@@ -91,84 +100,132 @@ const FilterFormContent: FC<{
     };
 
     return (
-        <Space wrap spacing="medium" align="end">
-                    {/* 交易类型 */}
-                    <Form.Select
-                        field="type"
-                        label="交易类型"
-                        placeholder="选择交易类型"
+        <div style={{ display: 'flex', alignItems: 'end', gap: '16px', flexWrap: 'wrap' }}>
+            {/* 查看范围 */}
+            <div>
+                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+                    查看范围
+                </Text>
+                <Select
+                    value={selectedWallet}
+                    onChange={(value) => onWalletChange(value as string)}
+                    style={{ width: 160 }}
+                    optionList={walletOptions.map(option => ({
+                        ...option,
+                        label: (
+                            <Space>
+                                {option.value === 'self' ?
+                                    <IconUser size="small" /> :
+                                    <IconCreditCard size="small" />
+                                }
+                                {option.label}
+                            </Space>
+                        )
+                    }))}
+                />
+            </div>
+
+            {/* 交易类型 */}
+            <div>
+                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+                    交易类型
+                </Text>
+                <Form.Select
+                    field="type"
+                    placeholder="选择类型"
+                    style={{ width: 140 }}
+                    optionList={TRANSACTION_TYPE_OPTIONS}
+                    showClear
+                />
+            </div>
+
+            {/* 交易状态 */}
+            <div>
+                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+                    交易状态
+                </Text>
+                <Form.Select
+                    field="status"
+                    placeholder="选择状态"
+                    style={{ width: 140 }}
+                    optionList={TRANSACTION_STATUS_OPTIONS}
+                />
+            </div>
+
+            {/* 日期范围 */}
+            <div>
+                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+                    时间范围
+                </Text>
+                <DatePicker
+                    type="dateTimeRange"
+                    style={{ width: 320 }}
+                    placeholder={['开始时间', '结束时间']}
+                    format="yyyy-MM-dd HH:mm"
+                    onChange={(dateRange) => {
+                        formApi.setValue('dateRange', dateRange);
+                    }}
+                />
+            </div>
+
+            {/* 用户UID筛选（仅钱包所有者显示） */}
+            {showUserFilter && (
+                <div>
+                    <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+                        用户UID
+                    </Text>
+                    <Form.Input
+                        field="userUid"
+                        placeholder="输入用户UID"
                         style={{ width: 140 }}
-                        optionList={TRANSACTION_TYPE_OPTIONS}
                     />
+                </div>
+            )}
 
-                    {/* 交易状态 */}
-                    <Form.Select
-                        field="status"
-                        label="交易状态"
-                        placeholder="选择交易状态"
-                        style={{ width: 140 }}
-                        optionList={TRANSACTION_STATUS_OPTIONS}
-                    />
+            {/* 操作按钮 */}
+            <div style={{ marginLeft: 'auto' }}>
+                <Space>
+                    <Button
+                        type="primary"
+                        icon={<IconSearch />}
+                        loading={loading}
+                        onClick={handleSubmitClick}
+                    >
+                        查询
+                    </Button>
 
-                    {/* 日期范围 */}
-                    <Form.DatePicker
-                        field="dateRange"
-                        label="日期范围"
-                        type="dateRange"
-                        placeholder={['开始日期', '结束日期']}
-                        style={{ width: 280 }}
-                        format="YYYY-MM-DD"
-                    />
-
-                    {/* 用户ID筛选（仅钱包视图显示） */}
-                    {showUserFilter && (
-                        <Form.InputNumber
-                            field="userId"
-                            label="用户ID"
-                            placeholder="输入用户ID"
-                            style={{ width: 120 }}
-                            min={1}
-                            precision={0}
-                        />
-                    )}
-
-                    {/* 操作按钮 */}
-                    <Space>
+                    {hasFilters && (
                         <Button
-                            type="primary"
-                            icon={<IconSearch />}
-                            loading={loading}
-                            onClick={handleSubmitClick}
+                            icon={<IconRefresh />}
+                            onClick={handleReset}
+                            disabled={loading}
                         >
-                            查询
+                            重置
                         </Button>
-                        
-                        {hasFilters && (
-                            <Button
-                                icon={<IconRefresh />}
-                                onClick={handleReset}
-                                disabled={loading}
-                            >
-                                重置
-                            </Button>
-                        )}
-                    </Space>
+                    )}
                 </Space>
+            </div>
+        </div>
     );
 };
 
 const TransactionFilters: FC<TransactionFiltersProps> = ({
     onFilter,
     loading = false,
-    showUserFilter = false
+    showUserFilter = false,
+    walletOptions,
+    selectedWallet,
+    onWalletChange
 }) => {
     const [hasFilters, setHasFilters] = useState(false);
 
     return (
-        <Card
-            bodyStyle={{ padding: '16px 20px' }}
-            style={{ backgroundColor: 'var(--semi-color-fill-0)' }}
-        >
+        <div style={{
+            padding: '16px 20px',
+            backgroundColor: 'var(--semi-color-fill-0)',
+            borderRadius: '8px',
+            border: '1px solid var(--semi-color-border)'
+        }}>
             <Form
                 layout="horizontal"
                 style={{ marginBottom: 0 }}
@@ -179,9 +236,12 @@ const TransactionFilters: FC<TransactionFiltersProps> = ({
                     showUserFilter={showUserFilter}
                     hasFilters={hasFilters}
                     setHasFilters={setHasFilters}
+                    walletOptions={walletOptions}
+                    selectedWallet={selectedWallet}
+                    onWalletChange={onWalletChange}
                 />
             </Form>
-        </Card>
+        </div>
     );
 };
 
