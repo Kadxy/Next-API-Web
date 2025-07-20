@@ -1,30 +1,54 @@
 import {FC, useCallback, useEffect, useState} from 'react';
-import {Card, Descriptions, SideSheet, Space, Spin, Toast, Typography} from '@douyinfe/semi-ui';
-import {TransactionDetailData} from '../../api/generated';
+import {Descriptions, SideSheet, Space, Spin, Typography, Tag, Card, Avatar} from '@douyinfe/semi-ui';
+import {TransactionDetailData, SelfTransactionRecordData, WalletOwnerTransactionRecordData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {getDayjsFormat, getErrorMsg} from '../../utils';
+import {getDayjsFormat, getErrorMsg, formatCredit, getDefaultAvatar} from '../../utils';
 
 const {Text} = Typography;
 
 interface TransactionDetailSideSheetProps {
     visible: boolean;
     businessId: string;
+    record: SelfTransactionRecordData | WalletOwnerTransactionRecordData | null;
     onClose: () => void;
 }
+
+// 交易类型映射
+const TRANSACTION_TYPE_MAP = {
+    RECHARGE: {text: '充值', color: 'green'},
+    REDEMPTION: {text: '兑换', color: 'blue'},
+    CONSUME: {text: '消费', color: 'orange'},
+    REFUND: {text: '退款', color: 'cyan'},
+    ADJUSTMENT: {text: '调整', color: 'purple'},
+    SUBSCRIPTION: {text: '订阅', color: 'indigo'},
+    OTHER: {text: '其他', color: 'grey'}
+} as const;
+
+// 交易状态映射
+const TRANSACTION_STATUS_MAP = {
+    PENDING: {text: '待处理', color: 'amber'},
+    PROCESSING: {text: '处理中', color: 'blue'},
+    COMPLETED: {text: '已完成', color: 'green'},
+    FAILED: {text: '失败', color: 'red'},
+    CANCELLED: {text: '已取消', color: 'grey'}
+} as const;
 
 const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                                                                        visible,
                                                                        businessId,
+                                                                       record,
                                                                        onClose
                                                                    }) => {
     const [detail, setDetail] = useState<TransactionDetailData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [detailError, setDetailError] = useState<string | null>(null);
 
     // 获取交易详情
     const fetchDetail = useCallback(async () => {
         if (!businessId) return;
 
         setLoading(true);
+        setDetailError(null);
         try {
             await handleResponse(
                 getServerApi().transaction.transactionControllerGetTransactionDetail({
@@ -35,12 +59,12 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                         setDetail(data);
                     },
                     onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
+                        setDetailError(errorMsg);
                     }
                 }
             );
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '获取交易详情失败')});
+            setDetailError(getErrorMsg(error, '获取交易详情失败'));
         } finally {
             setLoading(false);
         }
@@ -55,6 +79,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
     // 清理状态
     const handleClose = () => {
         setDetail(null);
+        setDetailError(null);
         onClose();
     };
 
@@ -85,159 +110,361 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
         }
     };
 
+    // 基础信息（来自列表数据）
+    const renderBasicInfo = () => {
+        if (!record) return null;
+
+        const typeConfig = TRANSACTION_TYPE_MAP[record.type];
+        const statusConfig = TRANSACTION_STATUS_MAP[record.status];
+        const amountStr = typeof record.amount === 'object' && record.amount !== null
+            ? String(record.amount)
+            : String(record.amount || '0');
+
+        // 检查是否是钱包交易记录（包含用户信息）
+        const walletRecord = record as WalletOwnerTransactionRecordData;
+        const hasUserInfo = walletRecord.user;
+
+        return (
+            <Card
+                title="交易信息"
+                bordered={false}
+                bodyStyle={{ padding: '16px 20px' }}
+                style={{ marginBottom: '16px' }}
+            >
+                <Space vertical spacing="medium" style={{width: '100%'}}>
+                    {/* 主要信息 */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '16px',
+                        padding: '16px',
+                        backgroundColor: 'var(--semi-color-fill-0)',
+                        borderRadius: '8px'
+                    }}>
+                        <div>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                                交易类型
+                            </Text>
+                            <Tag color={typeConfig.color} size="large">
+                                {typeConfig.text}
+                            </Tag>
+                        </div>
+                        <div>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                                交易状态
+                            </Text>
+                            <Tag color={statusConfig.color} size="large">
+                                {statusConfig.text}
+                            </Tag>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                                交易金额
+                            </Text>
+                            <Text strong style={{fontSize: '20px', color: 'var(--semi-color-primary)'}}>
+                                {formatCredit(amountStr)}
+                            </Text>
+                        </div>
+                    </div>
+
+                    {/* 用户信息（钱包交易记录） */}
+                    {hasUserInfo && (
+                        <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: 'var(--semi-color-primary-light-default)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--semi-color-primary-light-active)'
+                        }}>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                                交易用户
+                            </Text>
+                            <Space>
+                                {walletRecord.user.avatar ?
+                                    <Avatar size="small" src={walletRecord.user.avatar} /> :
+                                    getDefaultAvatar(walletRecord.user.displayName, 'small')
+                                }
+                                <Text strong>{walletRecord.user.displayName}</Text>
+                            </Space>
+                        </div>
+                    )}
+
+                    {/* 详细信息 */}
+                    <Descriptions
+                        data={[
+                            {
+                                key: '业务ID',
+                                value: (
+                                    <Text
+                                        copyable
+                                        style={{
+                                            fontFamily: 'monospace',
+                                            fontSize: '12px',
+                                            wordBreak: 'break-all'
+                                        }}
+                                    >
+                                        {record.businessId}
+                                    </Text>
+                                )
+                            },
+                            {
+                                key: '描述',
+                                value: record.description || '-'
+                            },
+                            {
+                                key: '创建时间',
+                                value: getDayjsFormat(record.createdAt, 'YYYY-MM-DD HH:mm:ss')
+                            },
+                            {
+                                key: '更新时间',
+                                value: getDayjsFormat(record.updatedAt, 'YYYY-MM-DD HH:mm:ss')
+                            }
+                        ]}
+                        row
+                        size="medium"
+                    />
+
+                    {/* 错误信息 */}
+                    {record.errorMessage && (
+                        <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: 'var(--semi-color-danger-light-default)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--semi-color-danger-light-active)'
+                        }}>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                                错误信息
+                            </Text>
+                            <Text type="danger">
+                                {record.errorMessage}
+                            </Text>
+                        </div>
+                    )}
+
+                    {/* API Key 信息 */}
+                    {record.apiKey && (
+                        <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: 'var(--semi-color-warning-light-default)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--semi-color-warning-light-active)'
+                        }}>
+                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                                API Key
+                            </Text>
+                            <Text>
+                                {String((record.apiKey as Record<string, unknown>)?.displayName || '-')}
+                            </Text>
+                        </div>
+                    )}
+                </Space>
+            </Card>
+        );
+    };
+
+    // 详细信息（来自详情接口）
+    const renderDetailInfo = () => {
+        if (loading) {
+            return (
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100px'
+                }}>
+                    <Spin size="large" tip="加载详细信息中..."/>
+                </div>
+            );
+        }
+
+        if (detailError) {
+            return (
+                <Card
+                    title="详细信息"
+                    bordered={false}
+                    bodyStyle={{ padding: '20px' }}
+                >
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '20px',
+                        backgroundColor: 'var(--semi-color-warning-light-default)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--semi-color-warning-light-active)'
+                    }}>
+                        <Text type="warning" style={{ fontSize: '16px' }}>
+                            暂无详细信息
+                        </Text>
+                        <br/>
+                        <Text type="tertiary" size="small" style={{ marginTop: '8px', display: 'block' }}>
+                            {detailError}
+                        </Text>
+                    </div>
+                </Card>
+            );
+        }
+
+        if (!detail) {
+            return null;
+        }
+
+        return (
+            <Card
+                title="详细信息"
+                bordered={false}
+                bodyStyle={{ padding: '16px 20px' }}
+            >
+                <Space vertical spacing="medium" style={{width: '100%'}}>
+                    {/* 时间信息 */}
+                    <div style={{
+                        padding: '16px',
+                        backgroundColor: 'var(--semi-color-fill-0)',
+                        borderRadius: '8px'
+                    }}>
+                        <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                            时间信息
+                        </Text>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                            <div>
+                                <Text type="secondary" size="small">开始时间</Text>
+                                <Text style={{ display: 'block', fontFamily: 'monospace', fontSize: '12px' }}>
+                                    {getDayjsFormat(detail.startTime, 'YYYY-MM-DD HH:mm:ss.SSS')}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">结束时间</Text>
+                                <Text style={{ display: 'block', fontFamily: 'monospace', fontSize: '12px' }}>
+                                    {getDayjsFormat(detail.endTime, 'YYYY-MM-DD HH:mm:ss.SSS')}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">持续时间</Text>
+                                <Text style={{ display: 'block' }}>
+                                    {detail.durationMs} 毫秒
+                                </Text>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 请求信息 */}
+                    <div style={{
+                        padding: '16px',
+                        backgroundColor: 'var(--semi-color-fill-0)',
+                        borderRadius: '8px'
+                    }}>
+                        <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                            请求信息
+                        </Text>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                            <div>
+                                <Text type="secondary" size="small">客户端IP</Text>
+                                <Text
+                                    copyable
+                                    style={{
+                                        display: 'block',
+                                        fontFamily: 'monospace',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    {detail.clientIp || '-'}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">外部追踪ID</Text>
+                                <Text
+                                    copyable
+                                    style={{
+                                        display: 'block',
+                                        fontFamily: 'monospace',
+                                        fontSize: '12px',
+                                        wordBreak: 'break-all'
+                                    }}
+                                >
+                                    {detail.externalTraceId || '-'}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">模型</Text>
+                                <Text style={{ display: 'block' }}>
+                                    {detail.model || '-'}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">服务提供商</Text>
+                                <Text style={{ display: 'block' }}>
+                                    {detail.provider || '-'}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">计费类型</Text>
+                                <Text style={{ display: 'block' }}>
+                                    {detail.billingType || '-'}
+                                </Text>
+                            </div>
+                            <div>
+                                <Text type="secondary" size="small">上游ID</Text>
+                                <Text style={{ display: 'block' }}>
+                                    {detail.upstreamId || '-'}
+                                </Text>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 用户代理 */}
+                    {detail.userAgent && (
+                        <div style={{
+                            padding: '16px',
+                            backgroundColor: 'var(--semi-color-fill-0)',
+                            borderRadius: '8px'
+                        }}>
+                            <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                                用户代理
+                            </Text>
+                            <Text
+                                style={{
+                                    fontSize: '12px',
+                                    wordBreak: 'break-all',
+                                    backgroundColor: 'var(--semi-color-bg-2)',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    display: 'block',
+                                    border: '1px solid var(--semi-color-border)',
+                                    fontFamily: 'monospace'
+                                }}
+                            >
+                                {detail.userAgent}
+                            </Text>
+                        </div>
+                    )}
+
+                    {/* 计费数据 */}
+                    {detail.billingData && (
+                        <div style={{
+                            padding: '16px',
+                            backgroundColor: 'var(--semi-color-fill-0)',
+                            borderRadius: '8px'
+                        }}>
+                            <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                                计费数据
+                            </Text>
+                            {formatBillingData(detail.billingData)}
+                        </div>
+                    )}
+                </Space>
+            </Card>
+        );
+    };
+
     return (
         <SideSheet
             title="交易详情"
             visible={visible}
             onCancel={handleClose}
-            width={600}
-            bodyStyle={{padding: '24px'}}
+            width={700}
+            bodyStyle={{padding: '20px'}}
         >
-            {loading ? (
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '200px'
-                }}>
-                    <Spin size="large" tip="加载中..."/>
-                </div>
-            ) : detail ? (
-                <Space vertical spacing='loose' style={{width: '100%'}}>
-                    {/* 基本信息 */}
-                    <Card title="基本信息" bordered={false}>
-                        <Descriptions
-                            data={[
-                                {
-                                    key: '业务ID',
-                                    value: (
-                                        <Text
-                                            copyable
-                                            style={{
-                                                fontFamily: 'monospace',
-                                                fontSize: '12px',
-                                                wordBreak: 'break-all'
-                                            }}
-                                        >
-                                            {detail.businessId}
-                                        </Text>
-                                    )
-                                },
-                                {
-                                    key: '模型',
-                                    value: detail.model || '-'
-                                },
-                                {
-                                    key: '服务提供商',
-                                    value: detail.provider || '-'
-                                },
-                                {
-                                    key: '计费类型',
-                                    value: detail.billingType || '-'
-                                },
-                                {
-                                    key: '上游ID',
-                                    value: detail.upstreamId || '-'
-                                }
-                            ]}
-                            row
-                            size="medium"
-                        />
-                    </Card>
-
-                    {/* 时间信息 */}
-                    <Card title="时间信息" bordered={false}>
-                        <Descriptions
-                            data={[
-                                {
-                                    key: '开始时间',
-                                    value: getDayjsFormat(detail.startTime, 'YYYY-MM-DD HH:mm:ss.SSS')
-                                },
-                                {
-                                    key: '结束时间',
-                                    value: getDayjsFormat(detail.endTime, 'YYYY-MM-DD HH:mm:ss.SSS')
-                                },
-                                {
-                                    key: '持续时间',
-                                    value: `${detail.durationMs} 毫秒`
-                                },
-                                {
-                                    key: '创建时间',
-                                    value: getDayjsFormat(detail.createdAt, 'YYYY-MM-DD HH:mm:ss')
-                                }
-                            ]}
-                            row
-                            size="medium"
-                        />
-                    </Card>
-
-                    {/* 请求信息 */}
-                    <Card title="请求信息" bordered={false}>
-                        <Descriptions
-                            data={[
-                                {
-                                    key: '客户端IP',
-                                    value: (
-                                        <Text
-                                            copyable
-                                            style={{fontFamily: 'monospace'}}
-                                        >
-                                            {detail.clientIp || '-'}
-                                        </Text>
-                                    )
-                                },
-                                {
-                                    key: '用户代理',
-                                    value: (
-                                        <Text
-                                            ellipsis={{
-                                                showTooltip: {
-                                                    opts: {content: detail.userAgent}
-                                                }
-                                            }}
-                                            style={{
-                                                maxWidth: '400px',
-                                                fontSize: '12px'
-                                            }}
-                                        >
-                                            {detail.userAgent || '-'}
-                                        </Text>
-                                    )
-                                },
-                                {
-                                    key: '外部追踪ID',
-                                    value: (
-                                        <Text
-                                            copyable
-                                            style={{fontFamily: 'monospace'}}
-                                        >
-                                            {detail.externalTraceId || '-'}
-                                        </Text>
-                                    )
-                                }
-                            ]}
-                            row
-                            size="medium"
-                        />
-                    </Card>
-
-                    {/* 计费数据 */}
-                    <Card title="计费数据" bordered={false}>
-                        <div style={{marginTop: '8px'}}>
-                            {formatBillingData(detail.billingData)}
-                        </div>
-                    </Card>
-                </Space>
-            ) : (
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '200px'
-                }}>
-                    <Text type="tertiary">暂无详情数据</Text>
-                </div>
-            )}
+            <div style={{ height: '100%', overflow: 'auto' }}>
+                {renderBasicInfo()}
+                {renderDetailInfo()}
+            </div>
         </SideSheet>
     );
 };

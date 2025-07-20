@@ -2,12 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TransactionRecordData } from './TransactionRecordData';
-export type TransactionListData = {
-    /**
-     * 交易记录列表
-     */
-    records: Array<TransactionRecordData>;
+import type { WalletOwnerTransactionRecordData } from './WalletOwnerTransactionRecordData';
+export type WalletTransactionListData = {
     /**
      * 总数量
      */
@@ -24,5 +20,9 @@ export type TransactionListData = {
      * 总页数
      */
     totalPages: number;
+    /**
+     * 交易记录列表
+     */
+    records: Array<WalletOwnerTransactionRecordData>;
 };
 

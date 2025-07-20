@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TransactionListData } from './TransactionListData';
-export type TransactionListResponseDto = {
+import type { SelfTransactionListData } from './SelfTransactionListData';
+export type SelfTransactionListResponseDto = {
     /**
      * Operation Success
      */
@@ -15,6 +15,6 @@ export type TransactionListResponseDto = {
     /**
      * Response data, only when success is true
      */
-    data: TransactionListData;
+    data: SelfTransactionListData;
 };
 

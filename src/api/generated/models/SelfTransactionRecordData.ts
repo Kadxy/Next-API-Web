@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type TransactionRecordData = {
+export type SelfTransactionRecordData = {
     /**
      * 业务ID
      */

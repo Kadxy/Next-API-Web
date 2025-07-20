@@ -2,22 +2,23 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SelfTransactionListResponseDto } from '../models/SelfTransactionListResponseDto';
 import type { TransactionDetailResponseDto } from '../models/TransactionDetailResponseDto';
-import type { TransactionListResponseDto } from '../models/TransactionListResponseDto';
+import type { WalletTransactionListResponseDto } from '../models/WalletTransactionListResponseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class TransactionService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * 查询当前用户的交易记录
-     * @returns TransactionListResponseDto
+     * @returns SelfTransactionListResponseDto
      * @throws ApiError
      */
     public transactionControllerGetSelfTransactions({
         page,
         pageSize,
-        startDate,
-        endDate,
+        startTime,
+        endTime,
         type,
         status,
     }: {
@@ -30,13 +31,13 @@ export class TransactionService {
          */
         pageSize?: number,
         /**
-         * 开始日期
+         * 开始时间
          */
-        startDate?: string,
+        startTime?: string,
         /**
-         * 结束日期
+         * 结束时间
          */
-        endDate?: string,
+        endTime?: string,
         /**
          * 交易类型
          */
@@ -45,34 +46,34 @@ export class TransactionService {
          * 交易状态
          */
         status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
-    }): CancelablePromise<TransactionListResponseDto> {
+    }): CancelablePromise<SelfTransactionListResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/transaction/self',
             query: {
                 'page': page,
                 'pageSize': pageSize,
-                'startDate': startDate,
-                'endDate': endDate,
+                'startTime': startTime,
+                'endTime': endTime,
                 'type': type,
                 'status': status,
             },
         });
     }
     /**
-     * 查询钱包的交易记录（仅钱包所有者）
-     * @returns TransactionListResponseDto
+     * 查询钱包的交易记录（成员查询自己，所有者可指定用户）
+     * @returns WalletTransactionListResponseDto
      * @throws ApiError
      */
     public transactionControllerGetWalletTransactions({
         walletUid,
         page,
         pageSize,
-        startDate,
-        endDate,
+        startTime,
+        endTime,
         type,
         status,
-        userId,
+        userUid,
     }: {
         walletUid: string,
         /**
@@ -84,13 +85,13 @@ export class TransactionService {
          */
         pageSize?: number,
         /**
-         * 开始日期
+         * 开始时间
          */
-        startDate?: string,
+        startTime?: string,
         /**
-         * 结束日期
+         * 结束时间
          */
-        endDate?: string,
+        endTime?: string,
         /**
          * 交易类型
          */
@@ -100,10 +101,10 @@ export class TransactionService {
          */
         status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
         /**
-         * 指定用户ID
+         * 指定用户UID（仅钱包所有者可用）
          */
-        userId?: number,
-    }): CancelablePromise<TransactionListResponseDto> {
+        userUid?: string,
+    }): CancelablePromise<WalletTransactionListResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/transaction/wallet/{walletUid}',
@@ -113,11 +114,11 @@ export class TransactionService {
             query: {
                 'page': page,
                 'pageSize': pageSize,
-                'startDate': startDate,
-                'endDate': endDate,
+                'startTime': startTime,
+                'endTime': endTime,
                 'type': type,
                 'status': status,
-                'userId': userId,
+                'userUid': userUid,
             },
         });
     }
