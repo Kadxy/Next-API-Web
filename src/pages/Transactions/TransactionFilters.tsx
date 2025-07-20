@@ -116,7 +116,7 @@ const TransactionFilters: FC<TransactionFiltersProps> = (props: TransactionFilte
                 <Select
                     value={filters.walletUid}
                     onChange={async (v) => await handleFilterChange('walletUid', v)}
-                    style={{ width: 160 }}
+                    style={{ width: 192 }}
                     showClear={false}
                     optionList={walletOptions}
                     disabled={fetching}

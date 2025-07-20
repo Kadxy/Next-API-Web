@@ -41,11 +41,11 @@ export class TransactionService {
         /**
          * 交易类型
          */
-        type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER',
+        type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT',
         /**
          * 交易状态
          */
-        status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
+        status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'FAILED',
     }): CancelablePromise<SelfTransactionListResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
@@ -95,11 +95,11 @@ export class TransactionService {
         /**
          * 交易类型
          */
-        type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER',
+        type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT',
         /**
          * 交易状态
          */
-        status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
+        status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'FAILED',
         /**
          * 指定成员用户UID（仅钱包所有者可用）
          */

@@ -32,7 +32,7 @@ export const TRANSACTION_STATUS_OPTIONS = Object.keys(TRANSACTION_STATUS_MAP).ma
 }));
 
 export interface TransactionQueryParams {
-    type: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER' | undefined;
+    type: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' |undefined;
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | undefined;
     startTime: string | undefined;
     endTime: string | undefined;

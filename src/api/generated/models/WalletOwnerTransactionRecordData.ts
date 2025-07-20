@@ -12,7 +12,7 @@ export type WalletOwnerTransactionRecordData = {
     /**
      * 交易类型
      */
-    type: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
+    type: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT';
     /**
      * 金额（Decimal类型）
      */
@@ -24,7 +24,7 @@ export type WalletOwnerTransactionRecordData = {
     /**
      * 状态
      */
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
     /**
      * 错误信息
      */
