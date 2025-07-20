@@ -1,7 +1,7 @@
-import {FC, useEffect, useMemo, useState} from 'react';
-import {Avatar, Button, Card, Empty, Space, Table, Tag, Toast, Typography} from '@douyinfe/semi-ui';
-import {IconMore} from '@douyinfe/semi-icons';
-import {ColumnProps} from '@douyinfe/semi-ui/lib/es/table/interface';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { Avatar, Button, Card, Empty, Space, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
+import { IconMore } from '@douyinfe/semi-icons';
+import { ColumnProps } from '@douyinfe/semi-ui/lib/es/table/interface';
 import {
     CancelablePromise,
     ListWalletResponseItemData,
@@ -10,11 +10,11 @@ import {
     WalletOwnerTransactionRecordData,
     WalletTransactionListResponseDto
 } from '../../api/generated';
-import {getServerApi, handleResponse} from '../../api/utils';
-import {getDefaultAvatar, getErrorMsg} from '../../utils';
+import { getServerApi, handleResponse } from '../../api/utils';
+import { getDefaultAvatar, getErrorMsg } from '../../utils';
 import TransactionFilters from './TransactionFilters';
 import TransactionDetailSideSheet from './TransactionDetailSideSheet';
-import {IllustrationConstruction, IllustrationConstructionDark} from "@douyinfe/semi-illustrations";
+import { IllustrationConstruction, IllustrationConstructionDark } from "@douyinfe/semi-illustrations";
 import {
     DEFAULT_PAGINATION_STATE,
     DEFAULT_TRANSACTION_QUERY_PARAMS,
@@ -25,7 +25,7 @@ import {
 } from "./transaction.constant.ts";
 import dayjs from 'dayjs';
 
-const {Title, Text} = Typography;
+const { Title, Text } = Typography;
 
 type TransactionRecord = SelfTransactionRecordData | WalletOwnerTransactionRecordData;
 
@@ -62,7 +62,7 @@ const Transactions: FC = () => {
                 await handleResponse(getServerApi().wallet.walletControllerGetWallets(), {
                     onSuccess: setWallets,
                     onError: (msg) => {
-                        Toast.error({content: msg});
+                        Toast.error({ content: msg });
                     }
                 });
             } catch (error) {
@@ -132,12 +132,12 @@ const Transactions: FC = () => {
                         });
                     },
                     onError: (errorMsg) => {
-                        Toast.error({content: errorMsg});
+                        Toast.error({ content: errorMsg });
                     }
                 }
             );
         } catch (error) {
-            Toast.error({content: getErrorMsg(error, '获取交易记录失败')});
+            Toast.error({ content: getErrorMsg(error, '获取交易记录失败') });
         } finally {
             setFetching(false);
         }
@@ -162,15 +162,15 @@ const Transactions: FC = () => {
                     return null;
                 }
 
-                const {user} = record;
+                const { user } = record;
 
                 return (
                     <Space>
                         {user.avatar ?
-                            <Avatar size="extra-small" src={user.avatar}/> :
+                            <Avatar size="extra-small" src={user.avatar} /> :
                             getDefaultAvatar(user.displayName, 'extra-small')
                         }
-                        <Text style={{fontSize: '12px'}}>
+                        <Text style={{ fontSize: '12px' }}>
                             {user.displayName}
                         </Text>
                     </Space>
@@ -184,7 +184,7 @@ const Transactions: FC = () => {
             width: '100px',
             align: 'center',
             render: (type: keyof typeof TRANSACTION_TYPE_MAP) => {
-                const {color, text} = TRANSACTION_TYPE_MAP[type];
+                const { color, text } = TRANSACTION_TYPE_MAP[type];
                 return (
                     <Tag color={color}>{text}</Tag>
                 );
@@ -236,7 +236,7 @@ const Transactions: FC = () => {
             align: 'center',
             render: (_: unknown, record: TransactionRecord) => (
                 <Button
-                    icon={<IconMore/>}
+                    icon={<IconMore />}
                     theme="borderless"
                     size="small"
                     onClick={() => setSelectedRecord(record)}
@@ -260,7 +260,7 @@ const Transactions: FC = () => {
                 bordered={false}
                 headerLine={false}
             >
-                <Space vertical spacing="medium" style={{width: '100%'}}>
+                <Space vertical spacing="medium" style={{ width: '100%' }}>
                     {/* 筛选器 */}
                     <TransactionFilters
                         fetching={fetching}
@@ -269,7 +269,7 @@ const Transactions: FC = () => {
                         filters={filters}
                         setFilters={setFilters}
                         onSearch={async (newFilters) => {
-                            const newPagination = {...pagination, current: 1};
+                            const newPagination = { ...pagination, current: 1 };
                             setPagination(newPagination);
                             await fetchTransactions(newFilters, newPagination);
                         }}
@@ -292,7 +292,7 @@ const Transactions: FC = () => {
                             showTotal: true,
                             popoverPosition: "top",
                             onChange: async (page, pageSize) => {
-                                const newPagination = {...pagination, current: page, pageSize};
+                                const newPagination = { ...pagination, current: page, pageSize };
                                 setPagination(newPagination);
                                 await fetchTransactions(filters, newPagination);
                             }
@@ -300,11 +300,11 @@ const Transactions: FC = () => {
                         empty={
                             !fetching && transactions.length === 0 && (
                                 <Empty
-                                    image={<IllustrationConstruction style={{width: 150, height: 150}}/>}
-                                    darkModeImage={<IllustrationConstructionDark style={{width: 150, height: 150}}/>}
+                                    image={<IllustrationConstruction style={{ width: 150, height: 150 }} />}
+                                    darkModeImage={<IllustrationConstructionDark style={{ width: 150, height: 150 }} />}
                                     title="暂无交易记录"
                                     description="当前条件下没有找到交易记录"
-                                    style={{padding: 32}}
+                                    style={{ padding: 32 }}
                                 />
                             )
                         }

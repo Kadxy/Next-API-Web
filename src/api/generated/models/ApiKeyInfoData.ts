@@ -4,7 +4,15 @@
 /* eslint-disable */
 export type ApiKeyInfoData = {
     /**
-     * API Key 显示名称
+     * API 密钥 预览
+     */
+    preview: string;
+    /**
+     * API 密钥 hashKey
+     */
+    hashKey: string;
+    /**
+     * API 密钥 显示名称
      */
     displayName: string;
 };
