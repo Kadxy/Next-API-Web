@@ -1,58 +1,37 @@
 import {FC, useCallback, useEffect, useState} from 'react';
-import {Descriptions, SideSheet, Space, Spin, Typography, Tag, Card, Avatar} from '@douyinfe/semi-ui';
-import {TransactionDetailData, SelfTransactionRecordData, WalletOwnerTransactionRecordData} from '../../api/generated';
+import {Avatar, Card, Descriptions, SideSheet, Space, Spin, Tag, Typography} from '@douyinfe/semi-ui';
+import {SelfTransactionRecordData, TransactionDetailData, WalletOwnerTransactionRecordData} from '../../api/generated';
 import {getServerApi, handleResponse} from '../../api/utils';
-import {getDayjsFormat, getErrorMsg, formatCredit, getDefaultAvatar} from '../../utils';
+import {formatCredit, getDayjsFormat, getDefaultAvatar, getErrorMsg} from '../../utils';
+import {TRANSACTION_STATUS_MAP, TRANSACTION_TYPE_MAP} from './transaction.constant';
 
 const {Text} = Typography;
 
 interface TransactionDetailSideSheetProps {
     visible: boolean;
-    businessId: string;
     record: SelfTransactionRecordData | WalletOwnerTransactionRecordData | null;
     onClose: () => void;
 }
 
-// 交易类型映射
-const TRANSACTION_TYPE_MAP = {
-    RECHARGE: {text: '充值', color: 'green'},
-    REDEMPTION: {text: '兑换', color: 'blue'},
-    CONSUME: {text: '消费', color: 'orange'},
-    REFUND: {text: '退款', color: 'cyan'},
-    ADJUSTMENT: {text: '调整', color: 'purple'},
-    SUBSCRIPTION: {text: '订阅', color: 'indigo'},
-    OTHER: {text: '其他', color: 'grey'}
-} as const;
-
-// 交易状态映射
-const TRANSACTION_STATUS_MAP = {
-    PENDING: {text: '待处理', color: 'amber'},
-    PROCESSING: {text: '处理中', color: 'blue'},
-    COMPLETED: {text: '已完成', color: 'green'},
-    FAILED: {text: '失败', color: 'red'},
-    CANCELLED: {text: '已取消', color: 'grey'}
-} as const;
-
 const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
-                                                                       visible,
-                                                                       businessId,
-                                                                       record,
-                                                                       onClose
-                                                                   }) => {
+                                                                             visible,
+                                                                             record,
+                                                                             onClose
+                                                                         }) => {
     const [detail, setDetail] = useState<TransactionDetailData | null>(null);
     const [loading, setLoading] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
 
     // 获取交易详情
     const fetchDetail = useCallback(async () => {
-        if (!businessId) return;
+        if (!record || !record.businessId) return;
 
         setLoading(true);
         setDetailError(null);
         try {
             await handleResponse(
                 getServerApi().transaction.transactionControllerGetTransactionDetail({
-                    businessId
+                    businessId: record.businessId
                 }),
                 {
                     onSuccess: (data) => {
@@ -68,13 +47,13 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
         } finally {
             setLoading(false);
         }
-    }, [businessId]);
+    }, [record]);
 
     useEffect(() => {
-        if (visible && businessId) {
-            fetchDetail();
+        if (visible && record && record.businessId) {
+            fetchDetail().catch();
         }
-    }, [visible, businessId, fetchDetail]);
+    }, [visible, record, fetchDetail]);
 
     // 清理状态
     const handleClose = () => {
@@ -128,8 +107,8 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
             <Card
                 title="交易信息"
                 bordered={false}
-                bodyStyle={{ padding: '16px 20px' }}
-                style={{ marginBottom: '16px' }}
+                bodyStyle={{padding: '16px 20px'}}
+                style={{marginBottom: '16px'}}
             >
                 <Space vertical spacing="medium" style={{width: '100%'}}>
                     {/* 主要信息 */}
@@ -142,7 +121,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                         borderRadius: '8px'
                     }}>
                         <div>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '4px'}}>
                                 交易类型
                             </Text>
                             <Tag color={typeConfig.color} size="large">
@@ -150,15 +129,15 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             </Tag>
                         </div>
                         <div>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '4px'}}>
                                 交易状态
                             </Text>
                             <Tag color={statusConfig.color} size="large">
                                 {statusConfig.text}
                             </Tag>
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '4px' }}>
+                        <div style={{gridColumn: '1 / -1'}}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '4px'}}>
                                 交易金额
                             </Text>
                             <Text strong style={{fontSize: '20px', color: 'var(--semi-color-primary)'}}>
@@ -175,12 +154,12 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             borderRadius: '8px',
                             border: '1px solid var(--semi-color-primary-light-active)'
                         }}>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '8px'}}>
                                 交易用户
                             </Text>
                             <Space>
                                 {walletRecord.user.avatar ?
-                                    <Avatar size="small" src={walletRecord.user.avatar} /> :
+                                    <Avatar size="small" src={walletRecord.user.avatar}/> :
                                     getDefaultAvatar(walletRecord.user.displayName, 'small')
                                 }
                                 <Text strong>{walletRecord.user.displayName}</Text>
@@ -231,7 +210,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             borderRadius: '8px',
                             border: '1px solid var(--semi-color-danger-light-active)'
                         }}>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '8px'}}>
                                 错误信息
                             </Text>
                             <Text type="danger">
@@ -248,7 +227,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             borderRadius: '8px',
                             border: '1px solid var(--semi-color-warning-light-active)'
                         }}>
-                            <Text type="secondary" size="small" style={{ display: 'block', marginBottom: '8px' }}>
+                            <Text type="secondary" size="small" style={{display: 'block', marginBottom: '8px'}}>
                                 API Key
                             </Text>
                             <Text>
@@ -281,7 +260,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                 <Card
                     title="详细信息"
                     bordered={false}
-                    bodyStyle={{ padding: '20px' }}
+                    bodyStyle={{padding: '20px'}}
                 >
                     <div style={{
                         textAlign: 'center',
@@ -290,11 +269,11 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                         borderRadius: '8px',
                         border: '1px solid var(--semi-color-warning-light-active)'
                     }}>
-                        <Text type="warning" style={{ fontSize: '16px' }}>
+                        <Text type="warning" style={{fontSize: '16px'}}>
                             暂无详细信息
                         </Text>
                         <br/>
-                        <Text type="tertiary" size="small" style={{ marginTop: '8px', display: 'block' }}>
+                        <Text type="tertiary" size="small" style={{marginTop: '8px', display: 'block'}}>
                             {detailError}
                         </Text>
                     </div>
@@ -310,7 +289,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
             <Card
                 title="详细信息"
                 bordered={false}
-                bodyStyle={{ padding: '16px 20px' }}
+                bodyStyle={{padding: '16px 20px'}}
             >
                 <Space vertical spacing="medium" style={{width: '100%'}}>
                     {/* 时间信息 */}
@@ -319,25 +298,30 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                         backgroundColor: 'var(--semi-color-fill-0)',
                         borderRadius: '8px'
                     }}>
-                        <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                        <Text strong
+                              style={{display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)'}}>
                             时间信息
                         </Text>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '12px'
+                        }}>
                             <div>
                                 <Text type="secondary" size="small">开始时间</Text>
-                                <Text style={{ display: 'block', fontFamily: 'monospace', fontSize: '12px' }}>
+                                <Text style={{display: 'block', fontFamily: 'monospace', fontSize: '12px'}}>
                                     {getDayjsFormat(detail.startTime, 'YYYY-MM-DD HH:mm:ss.SSS')}
                                 </Text>
                             </div>
                             <div>
                                 <Text type="secondary" size="small">结束时间</Text>
-                                <Text style={{ display: 'block', fontFamily: 'monospace', fontSize: '12px' }}>
+                                <Text style={{display: 'block', fontFamily: 'monospace', fontSize: '12px'}}>
                                     {getDayjsFormat(detail.endTime, 'YYYY-MM-DD HH:mm:ss.SSS')}
                                 </Text>
                             </div>
                             <div>
                                 <Text type="secondary" size="small">持续时间</Text>
-                                <Text style={{ display: 'block' }}>
+                                <Text style={{display: 'block'}}>
                                     {detail.durationMs} 毫秒
                                 </Text>
                             </div>
@@ -350,10 +334,15 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                         backgroundColor: 'var(--semi-color-fill-0)',
                         borderRadius: '8px'
                     }}>
-                        <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                        <Text strong
+                              style={{display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)'}}>
                             请求信息
                         </Text>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '12px'
+                        }}>
                             <div>
                                 <Text type="secondary" size="small">客户端IP</Text>
                                 <Text
@@ -383,25 +372,25 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             </div>
                             <div>
                                 <Text type="secondary" size="small">模型</Text>
-                                <Text style={{ display: 'block' }}>
+                                <Text style={{display: 'block'}}>
                                     {detail.model || '-'}
                                 </Text>
                             </div>
                             <div>
                                 <Text type="secondary" size="small">服务提供商</Text>
-                                <Text style={{ display: 'block' }}>
+                                <Text style={{display: 'block'}}>
                                     {detail.provider || '-'}
                                 </Text>
                             </div>
                             <div>
                                 <Text type="secondary" size="small">计费类型</Text>
-                                <Text style={{ display: 'block' }}>
+                                <Text style={{display: 'block'}}>
                                     {detail.billingType || '-'}
                                 </Text>
                             </div>
                             <div>
                                 <Text type="secondary" size="small">上游ID</Text>
-                                <Text style={{ display: 'block' }}>
+                                <Text style={{display: 'block'}}>
                                     {detail.upstreamId || '-'}
                                 </Text>
                             </div>
@@ -415,7 +404,8 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             backgroundColor: 'var(--semi-color-fill-0)',
                             borderRadius: '8px'
                         }}>
-                            <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                            <Text strong
+                                  style={{display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)'}}>
                                 用户代理
                             </Text>
                             <Text
@@ -442,7 +432,8 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
                             backgroundColor: 'var(--semi-color-fill-0)',
                             borderRadius: '8px'
                         }}>
-                            <Text strong style={{ display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)' }}>
+                            <Text strong
+                                  style={{display: 'block', marginBottom: '12px', color: 'var(--semi-color-text-0)'}}>
                                 计费数据
                             </Text>
                             {formatBillingData(detail.billingData)}
@@ -461,7 +452,7 @@ const TransactionDetailSideSheet: FC<TransactionDetailSideSheetProps> = ({
             width={700}
             bodyStyle={{padding: '20px'}}
         >
-            <div style={{ height: '100%', overflow: 'auto' }}>
+            <div style={{height: '100%', overflow: 'auto'}}>
                 {renderBasicInfo()}
                 {renderDetailInfo()}
             </div>

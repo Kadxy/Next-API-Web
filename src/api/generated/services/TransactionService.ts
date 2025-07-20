@@ -73,7 +73,7 @@ export class TransactionService {
         endTime,
         type,
         status,
-        userUid,
+        memberUid,
     }: {
         walletUid: string,
         /**
@@ -101,9 +101,9 @@ export class TransactionService {
          */
         status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
         /**
-         * 指定用户UID（仅钱包所有者可用）
+         * 指定成员用户UID（仅钱包所有者可用）
          */
-        userUid?: string,
+        memberUid?: string,
     }): CancelablePromise<WalletTransactionListResponseDto> {
         return this.httpRequest.request({
             method: 'GET',
@@ -118,7 +118,7 @@ export class TransactionService {
                 'endTime': endTime,
                 'type': type,
                 'status': status,
-                'userUid': userUid,
+                'memberUid': memberUid,
             },
         });
     }

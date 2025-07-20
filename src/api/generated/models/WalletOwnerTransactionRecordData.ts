@@ -2,6 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiKeyInfoData } from './ApiKeyInfoData';
+import type { UserInfoData } from './UserInfoData';
 export type WalletOwnerTransactionRecordData = {
     /**
      * 业务ID
@@ -38,10 +40,10 @@ export type WalletOwnerTransactionRecordData = {
     /**
      * API Key信息
      */
-    apiKey?: Record<string, any>;
+    apiKey?: ApiKeyInfoData;
     /**
      * 用户信息
      */
-    user: Record<string, any>;
+    user: UserInfoData;
 };
 

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiKeyInfoData } from './ApiKeyInfoData';
 export type SelfTransactionRecordData = {
     /**
      * 业务ID
@@ -38,6 +39,6 @@ export type SelfTransactionRecordData = {
     /**
      * API Key信息
      */
-    apiKey?: Record<string, any>;
+    apiKey?: ApiKeyInfoData;
 };
 

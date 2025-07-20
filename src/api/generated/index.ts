@@ -11,6 +11,7 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AddMemberDto } from './models/AddMemberDto';
+export type { ApiKeyInfoData } from './models/ApiKeyInfoData';
 export type { BaseResponse } from './models/BaseResponse';
 export type { CreateApiKeyRequestDto } from './models/CreateApiKeyRequestDto';
 export type { CreateApiKeyResponseData } from './models/CreateApiKeyResponseData';
@@ -56,6 +57,7 @@ export type { UpdateDisplayNameDto } from './models/UpdateDisplayNameDto';
 export type { UpdateMemberDto } from './models/UpdateMemberDto';
 export type { UpdatePasskeyDisplayNameRequestDto } from './models/UpdatePasskeyDisplayNameRequestDto';
 export type { UpdateWalletDisplayNameDto } from './models/UpdateWalletDisplayNameDto';
+export type { UserInfoData } from './models/UserInfoData';
 export type { UserResponseData } from './models/UserResponseData';
 export type { UserResponseDto } from './models/UserResponseDto';
 export type { WalletDetailResponseDto } from './models/WalletDetailResponseDto';

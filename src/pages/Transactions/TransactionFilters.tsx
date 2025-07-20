@@ -1,246 +1,257 @@
-import { FC, useState } from 'react';
+import { Dispatch, FC, ReactNode, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Button, DatePicker, Select, Space } from '@douyinfe/semi-ui';
+import { IconAt, IconCreditCard, IconRefresh, IconSearch, IconUserCircle } from '@douyinfe/semi-icons';
+import { getWalletMembersOption } from '../../api/utils/wallets-option';
+import dayjs from "dayjs";
 import {
-    Form,
-    Button,
-    Space,
-    DatePicker,
-    useFormApi,
-    Select,
-    Typography
-} from '@douyinfe/semi-ui';
-import { IconSearch, IconRefresh, IconUser, IconCreditCard } from '@douyinfe/semi-icons';
-
-const { Text } = Typography;
+    DEFAULT_TRANSACTION_QUERY_PARAMS,
+    MY_WALLET_UID,
+    TRANSACTION_STATUS_OPTIONS,
+    TRANSACTION_TYPE_OPTIONS,
+    TransactionQueryParams
+} from './transaction.constant';
+import { ListWalletResponseItemData } from '../../api/generated';
 
 interface TransactionFiltersProps {
-    onFilter: (filters: {
-        startTime?: string;
-        endTime?: string;
-        type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
-        status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-        userUid?: string;
-    }) => void;
-    loading?: boolean;
-    showUserFilter?: boolean;
-    walletOptions: { label: string; value: string; isOwner: boolean }[];
-    selectedWallet: string;
-    onWalletChange: (walletUid: string) => void;
+    fetching: boolean;
+    wallets: ListWalletResponseItemData[];
+    isWalletOwnerView: boolean;
+    filters: TransactionQueryParams;
+    setFilters: Dispatch<SetStateAction<TransactionQueryParams>>;
+    onSearch: (newFilters: TransactionQueryParams) => Promise<void>;
 }
 
-// 交易类型选项
-const TRANSACTION_TYPE_OPTIONS = [
-    { label: '充值', value: 'RECHARGE' },
-    { label: '兑换', value: 'REDEMPTION' },
-    { label: '消费', value: 'CONSUME' },
-    { label: '退款', value: 'REFUND' },
-    { label: '调整', value: 'ADJUSTMENT' },
-    { label: '订阅', value: 'SUBSCRIPTION' },
-    { label: '其他', value: 'OTHER' }
-];
+const TransactionFilters: FC<TransactionFiltersProps> = (props: TransactionFiltersProps) => {
+    const {
+        fetching,
+        wallets,
+        isWalletOwnerView,
+        filters,
+        setFilters,
+        onSearch,
+    } = props;
 
-// 交易状态选项
-const TRANSACTION_STATUS_OPTIONS = [
-    { label: '待处理', value: 'PENDING' },
-    { label: '处理中', value: 'PROCESSING' },
-    { label: '已完成', value: 'COMPLETED' },
-    { label: '失败', value: 'FAILED' },
-    { label: '已取消', value: 'CANCELLED' }
-];
+    // 钱包成员选项
+    const [memberOptions, setMemberOptions] = useState<{ label: ReactNode; value: string; }[]>([]);
 
-// 内部组件，用于访问 Form API
-const FilterFormContent: FC<{
-    onFilter: TransactionFiltersProps['onFilter'];
-    loading: boolean;
-    showUserFilter: boolean;
-    hasFilters: boolean;
-    setHasFilters: (value: boolean) => void;
-    walletOptions: TransactionFiltersProps['walletOptions'];
-    selectedWallet: string;
-    onWalletChange: TransactionFiltersProps['onWalletChange'];
-}> = ({ onFilter, loading, showUserFilter, hasFilters, setHasFilters, walletOptions, selectedWallet, onWalletChange }) => {
-    const formApi = useFormApi();
+    // 钱包选项
+    const walletOptions = useMemo(() => {
+        const iconStyle = { color: 'var(--semi-color-text-1)' };
+        return [
+            {
+                text: '个人账户',
+                label: <Space><IconUserCircle style={iconStyle} />个人账户</Space>,
+                value: MY_WALLET_UID,
+                isOwner: true,
+            },
+            ...wallets.map(w => ({
+                text: w.displayName,
+                label: (
+                    <Space>
+                        {w.isOwner ? <IconCreditCard style={iconStyle} /> : <IconAt style={iconStyle} />}{w.displayName}
+                    </Space>
+                ),
+                value: w.uid,
+                isOwner: w.isOwner,
+            })),
+        ];
+    }, [wallets]);
 
-    // 处理筛选提交
-    const handleSubmit = (values: Record<string, unknown>) => {
-        const filters: {
-            startTime?: string;
-            endTime?: string;
-            type?: 'RECHARGE' | 'REDEMPTION' | 'CONSUME' | 'REFUND' | 'ADJUSTMENT' | 'SUBSCRIPTION' | 'OTHER';
-            status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-            userUid?: string;
-        } = {};
+    // 获取钱包成员选项
+    useEffect(() => {
+        const fetchMemberOptions = async (walletUid: string) => {
+            const options = await getWalletMembersOption(walletUid);
+            setMemberOptions(options);
+        };
 
-        // 处理日期范围
-        if (values.dateRange && Array.isArray(values.dateRange) && values.dateRange.length === 2) {
-            const dateRange = values.dateRange as Array<Date>;
-            // 使用 ISO 字符串格式
-            filters.startTime = dateRange[0].toISOString();
-            filters.endTime = dateRange[1].toISOString();
+        if (isWalletOwnerView && filters.walletUid && filters.walletUid !== MY_WALLET_UID) {
+            fetchMemberOptions(filters.walletUid).catch();
+        } else {
+            setMemberOptions([]);
+            setFilters((prev) => ({ ...prev, memberUid: undefined }));
         }
 
-        // 处理其他筛选条件
-        if (values.type) filters.type = values.type as typeof filters.type;
-        if (values.status) filters.status = values.status as typeof filters.status;
-        if (values.userUid) filters.userUid = values.userUid as string;
+    }, [isWalletOwnerView, filters.walletUid, setFilters, setMemberOptions]);
 
-        setHasFilters(Object.keys(filters).length > 0);
-        onFilter(filters);
+    const isResetDisabled = useMemo(() => {
+        // 只包含 walletUid 
+        return Object.keys(filters).filter(v => v !== undefined).length <= 1;
+    }, [filters]);
+
+    // 缓存当前时间，避免在回调中重复创建
+    const now = dayjs();
+
+    // 处理筛选条件变化
+    const handleFilterChange = async (key: keyof TransactionQueryParams, value: unknown) => {
+        let newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+
+        // 钱包(查询范围)变化时，追加清除成员筛选并发起查询
+        if (key === 'walletUid') {
+            newFilters = { ...newFilters, memberUid: undefined };
+            setFilters(newFilters);
+
+            await onSearch(newFilters);
+        }
     };
 
-    // 重置筛选
-    const handleReset = () => {
-        formApi.reset();
-        setHasFilters(false);
-        onFilter({});
+    // 重置筛选条件(钱包除外)并发起查询
+    const handleReset = async () => {
+        const newFilters = { ...DEFAULT_TRANSACTION_QUERY_PARAMS };
+        setFilters(newFilters);
+
+        await onSearch(newFilters);
     };
-
-    const handleSubmitClick = () => {
-        const values = formApi.getValues();
-        handleSubmit(values);
-    };
-
-    return (
-        <div style={{ display: 'flex', alignItems: 'end', gap: '16px', flexWrap: 'wrap' }}>
-            {/* 查看范围 */}
-            <div>
-                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
-                    查看范围
-                </Text>
-                <Select
-                    value={selectedWallet}
-                    onChange={(value) => onWalletChange(value as string)}
-                    style={{ width: 160 }}
-                    optionList={walletOptions.map(option => ({
-                        ...option,
-                        label: (
-                            <Space>
-                                {option.value === 'self' ?
-                                    <IconUser size="small" /> :
-                                    <IconCreditCard size="small" />
-                                }
-                                {option.label}
-                            </Space>
-                        )
-                    }))}
-                />
-            </div>
-
-            {/* 交易类型 */}
-            <div>
-                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
-                    交易类型
-                </Text>
-                <Form.Select
-                    field="type"
-                    placeholder="选择类型"
-                    style={{ width: 140 }}
-                    optionList={TRANSACTION_TYPE_OPTIONS}
-                    showClear
-                />
-            </div>
-
-            {/* 交易状态 */}
-            <div>
-                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
-                    交易状态
-                </Text>
-                <Form.Select
-                    field="status"
-                    placeholder="选择状态"
-                    style={{ width: 140 }}
-                    optionList={TRANSACTION_STATUS_OPTIONS}
-                />
-            </div>
-
-            {/* 日期范围 */}
-            <div>
-                <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
-                    时间范围
-                </Text>
-                <DatePicker
-                    type="dateTimeRange"
-                    style={{ width: 320 }}
-                    placeholder={['开始时间', '结束时间']}
-                    format="yyyy-MM-dd HH:mm"
-                    onChange={(dateRange) => {
-                        formApi.setValue('dateRange', dateRange);
-                    }}
-                />
-            </div>
-
-            {/* 用户UID筛选（仅钱包所有者显示） */}
-            {showUserFilter && (
-                <div>
-                    <Text type="secondary" strong style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
-                        用户UID
-                    </Text>
-                    <Form.Input
-                        field="userUid"
-                        placeholder="输入用户UID"
-                        style={{ width: 140 }}
-                    />
-                </div>
-            )}
-
-            {/* 操作按钮 */}
-            <div style={{ marginLeft: 'auto' }}>
-                <Space>
-                    <Button
-                        type="primary"
-                        icon={<IconSearch />}
-                        loading={loading}
-                        onClick={handleSubmitClick}
-                    >
-                        查询
-                    </Button>
-
-                    {hasFilters && (
-                        <Button
-                            icon={<IconRefresh />}
-                            onClick={handleReset}
-                            disabled={loading}
-                        >
-                            重置
-                        </Button>
-                    )}
-                </Space>
-            </div>
-        </div>
-    );
-};
-
-const TransactionFilters: FC<TransactionFiltersProps> = ({
-    onFilter,
-    loading = false,
-    showUserFilter = false,
-    walletOptions,
-    selectedWallet,
-    onWalletChange
-}) => {
-    const [hasFilters, setHasFilters] = useState(false);
 
     return (
         <div style={{
             padding: '16px 20px',
             backgroundColor: 'var(--semi-color-fill-0)',
             borderRadius: '8px',
-            border: '1px solid var(--semi-color-border)'
+            border: '1px solid var(--semi-color-border)',
         }}>
-            <Form
-                layout="horizontal"
-                style={{ marginBottom: 0 }}
-            >
-                <FilterFormContent
-                    onFilter={onFilter}
-                    loading={loading}
-                    showUserFilter={showUserFilter}
-                    hasFilters={hasFilters}
-                    setHasFilters={setHasFilters}
-                    walletOptions={walletOptions}
-                    selectedWallet={selectedWallet}
-                    onWalletChange={onWalletChange}
+            <Space spacing='loose' align='end' wrap>
+
+                {/* 查看范围 */}
+                <Select
+                    value={filters.walletUid}
+                    onChange={async (v) => await handleFilterChange('walletUid', v)}
+                    style={{ width: 160 }}
+                    showClear={false}
+                    optionList={walletOptions}
+                    disabled={fetching}
                 />
-            </Form>
+
+                {/* 交易类型 */}
+                <Select
+                    placeholder="选择类型"
+                    style={{ width: 108 }}
+                    optionList={TRANSACTION_TYPE_OPTIONS}
+                    showClear={!fetching}
+                    value={filters.type}
+                    onChange={async (value) => await handleFilterChange('type', value)}
+                    disabled={fetching}
+                />
+
+                {/* 交易状态 */}
+                <Select
+                    placeholder="选择状态"
+                    style={{ width: 108 }}
+                    showClear={!fetching}
+                    optionList={TRANSACTION_STATUS_OPTIONS}
+                    value={filters.status}
+                    onChange={async (value) => await handleFilterChange('status', value)}
+                    disabled={fetching}
+                />
+
+                {/* 开始时间 */}
+                <DatePicker
+                    type="dateTime"
+                    style={{ width: 192 }}
+                    placeholder="选择开始时间"
+                    format="yyyy-MM-dd HH:mm:ss"
+                    insetInput
+                    showClear={!fetching}
+                    disabledDate={(date) => dayjs(date).isAfter(now)}
+                    value={filters.startTime ? new Date(filters.startTime) : undefined}
+                    onChange={async (value) => {
+                        if (value && value instanceof Date) {
+                            await handleFilterChange('startTime', value.toISOString());
+                        } else {
+                            await handleFilterChange('startTime', undefined);
+                        }
+                    }}
+                    disabled={fetching}
+                />
+
+                {/* 结束时间 */}
+                <DatePicker
+                    type="dateTime"
+                    style={{ width: 192 }}
+                    placeholder="选择结束时间"
+                    format="yyyy-MM-dd HH:mm:ss"
+                    insetInput
+                    showClear={!fetching}
+                    disabledDate={(date) => {
+                        if (dayjs(date).isAfter(now, 'day')) {
+                            return true;
+                        }
+
+                        const startTime = filters.startTime;
+
+                        // 如果开始时间已选，结束日期不能早于开始日期 (精确到天)
+                        return !!(startTime && dayjs(date).isBefore(dayjs(startTime), 'day'));
+                    }}
+                    disabledTime={(date) => {
+                        const startTime = filters.startTime;
+
+                        // 当天, 禁止之后的时间
+                        if (dayjs(date as Date).isSame(dayjs(), 'day')) {
+                            return {
+                                disabledHours: () => Array.from({ length: 24 }, (_, i) => i).filter(i => i > dayjs().hour()),
+                                disabledMinutes: (hour) => dayjs(now).hour() === hour ? Array.from({ length: 60 }, (_, i) => i).filter(i => i > dayjs().minute()) : [],
+                                disabledSeconds: () => []
+                            };
+                        }
+
+                        // 是开始时间那天
+                        if (startTime && dayjs(date as Date).isSame(dayjs(startTime), 'day')) {
+                            return {
+                                disabledHours: () => Array.from({ length: 24 }, (_, i) => i).filter(i => i > dayjs(startTime).hour()),
+                                disabledMinutes: (hour) => dayjs(startTime).hour() === hour ? Array.from({ length: 60 }, (_, i) => i).filter(i => i > dayjs(startTime).minute()) : [],
+                                disabledSeconds: () => []
+                            };
+                        }
+
+                        // 其他情况不禁用任何时间
+                        return {
+                            disabledHours: () => [],
+                            disabledMinutes: () => [],
+                            disabledSeconds: () => []
+                        };
+                    }}
+                    value={filters.endTime ? new Date(filters.endTime) : undefined}
+                    onChange={async (value) => {
+                        if (value && value instanceof Date) {
+                            await handleFilterChange('endTime', value.toISOString());
+                        } else {
+                            await handleFilterChange('endTime', undefined);
+                        }
+                    }}
+                    disabled={fetching}
+                />
+
+                {/* 用户筛选（仅钱包所有者显示） */}
+                {isWalletOwnerView && (
+                    <Select
+                        placeholder="选择成员"
+                        style={{ width: 192 }}
+                        showClear={!fetching}
+                        optionList={memberOptions}
+                        value={filters.memberUid}
+                        onChange={async (value) => await handleFilterChange('memberUid', value)}
+                    />
+                )}
+
+                {/* 操作按钮 */}
+                <Space>
+                    <Button
+                        icon={<IconSearch />}
+                        loading={fetching}
+                        onClick={() => onSearch(filters)}
+                    >
+                        查询
+                    </Button>
+
+                    <Button
+                        icon={<IconRefresh />}
+                        onClick={handleReset}
+                        disabled={fetching || isResetDisabled}
+                    >
+                        重置
+                    </Button>
+                </Space>
+            </Space>
         </div>
     );
 };
