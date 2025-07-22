@@ -1,38 +1,57 @@
 import {CSSProperties, useState} from 'react';
-import { Typography, Card, Tabs, TabPane, Input, Button, Toast, CodeHighlight, Switch, AutoComplete } from '@douyinfe/semi-ui';
-import { IconCopy } from '@douyinfe/semi-icons';
+import {
+    AutoComplete,
+    Button,
+    Card,
+    CodeHighlight,
+    Input,
+    Select,
+    Switch,
+    TabPane,
+    Tabs,
+    Toast,
+    Typography
+} from '@douyinfe/semi-ui';
+import {IconCopy} from '@douyinfe/semi-icons';
 import 'prismjs/components/prism-python.js';
 import 'prismjs/components/prism-bash.js';
+import {SelectProps} from "@douyinfe/semi-ui/lib/es/select";
 
-const { Title, Paragraph, Text } = Typography;
+const {Title, Paragraph, Text} = Typography;
 
 // 模型选项
-const MODEL_OPTIONS = [
-    { value: 'gpt-4.1', label: 'gpt-4.1' },
-    { value: 'gpt-4o-mini', label: 'gpt-4o-mini' },
-    { value: 'claude-3.7-sonnet', label: 'claude-3.7-sonnet' },
-    { value: 'deepseek-v1', label: 'deepseek-v1' },
-    { value: 'deepseek-r3', label: 'deepseek-r3' },
-    { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro' },
+const MODEL_OPTIONS: SelectProps["optionList"] = [
+    {value: 'gpt-4.1', label: 'gpt-4.1'},
+    {value: 'gpt-4o-mini', label: 'gpt-4o-mini'},
+    {value: 'claude-3.7-sonnet', label: 'claude-3.7-sonnet'},
+    {value: 'deepseek-v1', label: 'deepseek-v1'},
+    {value: 'deepseek-r3', label: 'deepseek-r3'},
+    {value: 'gemini-2.5-pro', label: 'gemini-2.5-pro'},
 ];
+
+const ENDPOINT_OPTIONS: SelectProps["optionList"] = [
+    {value: 'https://api.api-grip.com', label: '通用接入点'},
+    {value: 'https://cn.api-grip.com', label: '中国大陆', disabled: true},
+    {value: 'https://us.api-grip.com', label: '美国洛杉矶', disabled: true},
+]
 
 const Access = () => {
     const [apiKey, setApiKey] = useState<string>('YOUR_API_KEY');
     const [model, setModel] = useState<string>('gpt-4.1');
     const [stream, setStream] = useState<boolean>(false);
-    const baseUrl = 'https://cn.api-grip.com';
+    const [baseUrl, setBaseUrl] = useState<typeof ENDPOINT_OPTIONS[number]['value']>(ENDPOINT_OPTIONS[0]["value"])
 
     // 复制代码到剪贴板
-    const CopyButton = ({ text, style }: { text: string, style: CSSProperties }) => {
+    const CopyButton = ({text, style}: { text: string, style: CSSProperties }) => {
         const copyToClipboard = (text: string) => {
             navigator.clipboard.writeText(text)
-                .then(() => Toast.success({ content: '复制成功', stack: true }))
-                .catch(() => Toast.error({ content: '复制失败', stack: true }));
+                .then(() => Toast.success({content: '复制成功', stack: true}))
+                .catch(() => Toast.error({content: '复制失败', stack: true}));
         };
 
         return (
             <Button
-                icon={<IconCopy />}
+                icon={<IconCopy/>}
                 onClick={() => copyToClipboard(text)}
                 style={style}
                 theme='borderless'
@@ -59,12 +78,12 @@ const completion = await client.chat.completions.create({
 });
 
 ${stream ?
-            `// Handle stream response
+        `// Handle stream response
 for await (const chunk of completion) {
     process.stdout.write(chunk.choices[0]?.delta?.content || "");
 }
 ` :
-            `console.log(completion.choices[0].message.content);`}`;
+        `console.log(completion.choices[0].message.content);`}`;
 
     // 生成Python示例
     const pythonExample = `from openai import OpenAI
@@ -85,13 +104,13 @@ completion = client.chat.completions.create(
 )
 
 ${stream ?
-            `# Handle stream response
+        `# Handle stream response
 for chunk in completion:
     content = chunk.choices[0].delta.content
     if content:
         print(content, end="", flush=True)
-`:
-            `print(completion.choices[0].message.content)`}`;
+` :
+        `print(completion.choices[0].message.content)`}`;
 
     // 生成cURL示例
     const curlExample = `curl "${baseUrl}/v1/chat/completions" \\
@@ -114,31 +133,41 @@ for chunk in completion:
             <Paragraph>
                 您可以使用以下示例代码快速集成我们的服务，示例遵循 OpenAI 格式规范。
             </Paragraph>
-            <Card style={{ marginTop: 20 }}>
-                <div style={{ marginBottom: 20 }}>
+            <Card style={{marginTop: 20}}>
+                <div style={{marginBottom: 20}}>
                     <Text strong>请设置以下参数，示例代码将自动更新：</Text>
-                    <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+                    <div style={{display: 'flex', gap: 16, marginTop: 12}}>
                         <div>
-                            <Text style={{ display: 'block', marginBottom: 4 }}>API Key</Text>
+                            <Text style={{display: 'block', marginBottom: 4}}>接入点</Text>
+                            <Select
+                                optionList={ENDPOINT_OPTIONS}
+                                value={baseUrl}
+                                onChange={(value) => setBaseUrl(value as string)}
+                                style={{width: 200}}
+                                placeholder="选择接入点"
+                            />
+                        </div>
+                        <div>
+                            <Text style={{display: 'block', marginBottom: 4}}>API Key</Text>
                             <Input
                                 value={apiKey}
                                 onChange={setApiKey}
-                                style={{ width: 300 }}
+                                style={{width: 300}}
                                 placeholder="请输入您的API Key"
                             />
                         </div>
                         <div>
-                            <Text style={{ display: 'block', marginBottom: 4 }}>Model</Text>
+                            <Text style={{display: 'block', marginBottom: 4}}>Model</Text>
                             <AutoComplete
                                 data={MODEL_OPTIONS}
                                 value={model}
                                 onChange={(value) => setModel(value as string)}
-                                style={{ width: 200 }}
+                                style={{width: 200}}
                                 placeholder="选择或输入模型"
                             />
                         </div>
                         <div>
-                            <Text style={{ display: 'block', marginBottom: 4 }}>Stream</Text>
+                            <Text style={{display: 'block', marginBottom: 4}}>Stream</Text>
                             <Switch
                                 checked={stream}
                                 onChange={setStream}
@@ -148,9 +177,9 @@ for chunk in completion:
                     </div>
                 </div>
 
-                <Tabs type="card" >
+                <Tabs type="card">
                     <TabPane tab="curl" itemKey="curl">
-                        <div style={{ position: 'relative' }}>
+                        <div style={{position: 'relative'}}>
                             <CodeHighlight
                                 language="bash"
                                 code={curlExample}
@@ -158,12 +187,12 @@ for chunk in completion:
                             />
                             <CopyButton
                                 text={curlExample}
-                                style={{ position: 'absolute', top: 10, right: 10 }}
+                                style={{position: 'absolute', top: 10, right: 10}}
                             />
                         </div>
                     </TabPane>
                     <TabPane tab="python" itemKey="python">
-                        <div style={{ position: 'relative' }}>
+                        <div style={{position: 'relative'}}>
                             <CodeHighlight
                                 language="python"
                                 code={pythonExample}
@@ -171,12 +200,12 @@ for chunk in completion:
                             />
                             <CopyButton
                                 text={pythonExample}
-                                style={{ position: 'absolute', top: 10, right: 10 }}
+                                style={{position: 'absolute', top: 10, right: 10}}
                             />
                         </div>
                     </TabPane>
                     <TabPane tab="javascript" itemKey="javascript">
-                        <div style={{ position: 'relative' }}>
+                        <div style={{position: 'relative'}}>
                             <CodeHighlight
                                 language="javascript"
                                 code={javascriptExample}
@@ -184,7 +213,7 @@ for chunk in completion:
                             />
                             <CopyButton
                                 text={javascriptExample}
-                                style={{ position: 'absolute', top: 10, right: 10 }}
+                                style={{position: 'absolute', top: 10, right: 10}}
                             />
                         </div>
                     </TabPane>
